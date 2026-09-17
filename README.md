@@ -40,3 +40,25 @@ The dashboard supports:
 The Create admin action stores `role: "admin"` in the new user's Firestore
 profile. The generated password is not stored; Firebase sends a password setup
 email.
+
+## Firebase Hosting deployment
+
+The admin app is configured as a Firebase Hosting SPA for the
+`smarteducation-705f1` project. The `main` branch workflow in
+`.github/workflows/ci.yml` runs lint and build checks on pull requests and
+deploys Hosting after a successful push to `main`.
+
+Configure these GitHub repository secrets before enabling deployment:
+
+- `FIREBASE_TOKEN`: create with `npx firebase-tools login:ci`
+- `VITE_FIREBASE_API_KEY`
+- `VITE_FIREBASE_AUTH_DOMAIN`
+- `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`
+- `VITE_FIREBASE_MESSAGING_SENDER_ID`
+- `VITE_FIREBASE_APP_ID`
+
+The Firebase Web configuration values are public runtime configuration, but
+keeping them in repository secrets avoids hard-coding environment-specific
+values in the workflow. Never add a service-account key or other private
+credentials to the repository.

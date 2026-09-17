@@ -20,6 +20,8 @@ ui-debug.log
 .env
 .env.*
 !.env.example
+.firebase/
+firebase-debug.log
 
 # Editor directories and files
 .vscode/*
