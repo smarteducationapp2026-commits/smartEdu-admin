@@ -50,7 +50,7 @@ deploys Hosting after a successful push to `main`.
 
 Configure these GitHub repository secrets before enabling deployment:
 
-- `FIREBASE_TOKEN`: create with `npx firebase-tools login:ci`
+- `FIREBASE_SERVICE_ACCOUNT`: complete JSON content of a Firebase service-account key
 - `VITE_FIREBASE_API_KEY`
 - `VITE_FIREBASE_AUTH_DOMAIN`
 - `VITE_FIREBASE_PROJECT_ID`
@@ -60,5 +60,5 @@ Configure these GitHub repository secrets before enabling deployment:
 
 The Firebase Web configuration values are public runtime configuration, but
 keeping them in repository secrets avoids hard-coding environment-specific
-values in the workflow. Never add a service-account key or other private
-credentials to the repository.
+values in the workflow. Keep the service-account JSON only in the GitHub
+Secret; never add it to the repository.
