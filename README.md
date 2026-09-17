@@ -46,7 +46,9 @@ email.
 The admin app is configured as a Firebase Hosting SPA for the
 `smarteducation-705f1` project. The `main` branch workflow in
 `.github/workflows/ci.yml` runs lint and build checks on pull requests and
-deploys Hosting after a successful push to `main`.
+deploys Hosting after a successful push to `main`. It also supports manually
+choosing any branch from the GitHub Actions **Run workflow** branch selector
+and deploying that branch.
 
 Configure these GitHub repository secrets before enabling deployment:
 
