@@ -1,0 +1,42 @@
+# SmartEdu Admin
+
+Separate React/Vite admin application for the Firebase project
+`smarteducation-705f1`.
+
+## Local setup
+
+1. Create a Web app in Firebase Console for `smarteducation-705f1`.
+2. Copy [.env.example](./.env.example) to `.env`.
+3. Replace `your_web_api_key` and `your_web_app_id` with the values from
+   that Web app's Firebase configuration. The API key must belong to the same
+   `smarteducation-705f1` project; do not use the configuration for the
+   separate `smartedu-f34f6` project. The admin app can read and write the
+   same Firestore collections (`users`, `courses`, etc.) because it uses the
+   same Firebase project.
+4. Restart Vite after changing `.env`, because Vite loads environment variables
+   when the dev server starts.
+5. Install dependencies and start Vite:
+
+```bash
+npm install
+npm run dev
+```
+
+## Admin security
+
+Admin access is controlled by the signed-in user's Firestore profile. The
+document ID must match the Firebase Auth UID and its `role` must be `admin` or
+`superAdmin`. The browser must never contain a Firebase service-account key.
+
+The dashboard supports:
+
+- Firebase Email/Password admin login.
+- Google admin login.
+- Listing user profiles from `users`.
+- Creating a Firebase Auth user through a secondary client app and generating a
+  referral code.
+- Editing offers on documents in `courses`.
+
+The Create admin action stores `role: "admin"` in the new user's Firestore
+profile. The generated password is not stored; Firebase sends a password setup
+email.
