@@ -31,7 +31,6 @@ document ID must match the Firebase Auth UID and its `role` must be `admin` or
 The dashboard supports:
 
 - Firebase Email/Password admin login.
-- Google admin login.
 - Listing user profiles from `users`.
 - Creating a Firebase Auth user through a secondary client app and generating a
   referral code.

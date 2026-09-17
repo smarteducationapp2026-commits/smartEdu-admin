@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import {
-  browserLocalPersistence, GoogleAuthProvider, onAuthStateChanged,
-  setPersistence, signInWithEmailAndPassword, signInWithPopup, signOut, type User,
+  browserLocalPersistence, onAuthStateChanged, setPersistence,
+  signInWithEmailAndPassword, signOut, type User,
 } from 'firebase/auth'
 import { doc, getDoc } from 'firebase/firestore'
 import { auth, db } from '../../firebase'
@@ -25,25 +25,12 @@ function Login({ error, onError }: { error: string; onError: (value: string) => 
     catch { onError('Unable to sign in. Check your credentials and admin permissions.') }
     finally { setBusy(false) }
   }
-  async function signInWithGoogle() {
-    onError('')
-    try {
-        const credential = await signInWithPopup(auth, new GoogleAuthProvider())
-        const role = await getAdminRole(credential.user)
-        if (!role) {
-          await signOut(auth)
-          onError('This Google account does not have an admin profile in Firestore.')
-          return
-        }
-    } catch (error) { onError(error instanceof Error ? error.message : 'Google sign-in failed.') }
-  }
   return <main className="center"><form className="card narrow form" onSubmit={submit}>
     <p className="eyebrow">SMARTEDU ADMIN</p><h1>Welcome back</h1><p>Sign in with your administrator account.</p>
     <label>Email<input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} /></label>
     <label>Password<input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} /></label>
     {error && <div className="error">{error}</div>}
     <button disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
-    <button type="button" onClick={signInWithGoogle}>Sign in with Google</button>
   </form></main>
 }
 
@@ -59,6 +46,10 @@ export function Auth() {
       if (nextUser) {
         const role = await getAdminRole(nextUser)
         setAdminRole(role)
+        if (!role) {
+          setError('This account is not authorized for SmartEdu Admin.')
+          await signOut(auth)
+        }
       }
       setLoading(false)
     })
