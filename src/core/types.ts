@@ -18,18 +18,38 @@ export type UserRecord = {
   referralCode?: string
   provider?: string
   onboardingComplete?: boolean
+  walletBalance?: number
   createdAt?: { seconds?: number }
   updatedAt?: { seconds?: number }
+}
+
+export type WalletTransactionType = 'signup_bonus' | 'referral_bonus' | 'topup' | 'admin_credit' | 'admin_debit'
+export type WalletDirection = 'credit' | 'debit'
+export type WalletTransaction = {
+  id: string
+  uid: string
+  type: WalletTransactionType
+  direction: WalletDirection
+  amount: number
+  balanceAfter?: number
+  description?: string
+  createdBy?: string
+  createdAt?: { seconds?: number }
 }
 
 export type AdminRole = 'user' | 'admin' | 'superAdmin'
 export type InstituteRole = 'institute' | 'admin'
 export type Course = { id: string; title: string; offer?: string; active?: boolean }
-export type Test = { id: string; title?: string; courseId?: string; active?: boolean; questionCount?: number }
 export type AcademicStatus = 'active' | 'inactive'
 export type Subject = { id: string; parentId?: string | null; name: string; code?: string; description?: string; type?: 'subject' | 'topic' | 'subtopic' | 'mixed'; status?: AcademicStatus; order?: number }
 export type ExamStatus = 'draft' | 'created' | 'published'
 export type ExamAnswerOption = 'A' | 'B' | 'C' | 'D'
+export type ExamTimerType = 'perQuestion' | 'overall'
+export type ExamTimerFields = { timerEnabled?: boolean; timerType?: ExamTimerType | null; timerSeconds?: number | null }
 export type ExamQuestion = { question: string; optionA: string; optionB: string; optionC: string; optionD: string; correctAnswer: ExamAnswerOption; explanation?: string }
-export type Exam = { id: string; topicId: string; name: string; description?: string; questions: ExamQuestion[]; status: ExamStatus; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number } }
+export type Exam = { id: string; topicId: string; name: string; description?: string; questions: ExamQuestion[]; status: ExamStatus; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number } } & ExamTimerFields
+export type PublicExamQuestion = { question: string; optionA: string; optionB: string; optionC: string; optionD: string }
+export type PublicExam = { id: string; name: string; topicId: string; questionCount: number; status: ExamStatus; questions: PublicExamQuestion[]; updatedAt?: { seconds?: number } } & ExamTimerFields
+export type TestSeriesStatus = 'draft' | 'published'
+export type TestSeries = { id: string; title: string; description?: string; courseId: string; examIds: string[]; thumbnailUrl?: string; status: TestSeriesStatus; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number } }
 export type AdminUser = Pick<User, 'email' | 'displayName' | 'photoURL'> & { uid: string }

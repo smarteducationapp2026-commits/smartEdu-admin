@@ -67,6 +67,21 @@ tr.clickable-row:hover{background:#edf6ff}
 .status-pill.status-published{background:#e6f7ec;color:#1c9a5b}
 .status-pill.status-created{background:#fff4e0;color:#b7791f}
 .status-pill.status-draft{background:#eef3f7;color:#6b7d8c}
+.test-series-cover-preview{display:grid;place-items:center;width:100%;max-width:220px;height:110px;border-radius:12px;color:#fff;font-weight:800;font-size:32px;margin-bottom:4px}
+.test-series-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+.test-series-card{padding:0;overflow:hidden;display:flex;flex-direction:column}
+.test-series-cover-card{display:grid;place-items:center;height:110px;color:#fff;font-weight:800;font-size:32px}
+.test-series-card-body{padding:16px;display:grid;gap:8px}
+.test-series-card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.test-series-card-head h3{font-size:16px;margin:0}
+.test-series-card-meta{color:#6b7d8c;font-size:13px;margin:0}
+.exam-picker{position:relative}
+.exam-picker-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:5;max-height:260px;overflow:auto;background:#fff;border:1px solid #dce7ef;border-radius:10px;box-shadow:0 12px 28px #16466b26;padding:6px}
+.exam-picker-option{display:block;width:100%;text-align:left;background:#fff;color:#172033;margin-bottom:2px;font-weight:400}
+.exam-picker-option:hover{background:#edf6ff}
+.exam-picker-empty{margin:4px 8px;color:#6b7d8c;font-size:13px}
+.exam-picker-selected-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eef3f7}
+.exam-picker-selected-row:last-child{border-bottom:none}
 button:not(.secondary):not(.small-button):not(.tile-action):not(.icon-button):not(.caret-button):not(.sidebar-toggle):not(.signout){box-shadow:0 10px 22px -10px #1767b180;transition:transform .15s ease,box-shadow .15s ease}
 button:not(.secondary):not(.small-button):not(.tile-action):not(.icon-button):not(.caret-button):not(.sidebar-toggle):not(.signout):not(:disabled):hover{transform:translateY(-1px);box-shadow:0 14px 26px -10px #1767b1a6}
 button:disabled{box-shadow:none!important;transform:none!important}

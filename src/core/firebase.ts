@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app'
 import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+// import { getFunctions } from 'firebase/functions'
 import { getStorage } from 'firebase/storage'
 
 const requiredConfig = {
@@ -38,3 +39,8 @@ export const app = initializeApp(firebaseConfig)
 export const auth = getAuth(app)
 export const db = getFirestore(app)
 export const storage = getStorage(app)
+
+// Cloud Functions require the Firebase Blaze plan (this project is currently
+// on Spark), so adminAdjustWallet is disabled — see Wallet.tsx. Uncomment
+// once Blaze is enabled and functions/src/wallet.ts is re-enabled.
+// export const functions = getFunctions(app)

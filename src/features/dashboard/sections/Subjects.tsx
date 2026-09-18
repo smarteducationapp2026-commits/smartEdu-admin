@@ -1,11 +1,14 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { collection, doc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
 import { db } from '../../../core/firebase'
-import type { Exam, ExamQuestion, Subject } from '../../../core/types'
+import type { Exam, ExamQuestion, PublicExamQuestion, Subject } from '../../../core/types'
 import { SEED_SUBJECTS } from './subjectSeedData'
 import { parseExamQuestionsCsv } from './examQuestionCsv'
 
-export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'admin' | 'superAdmin'; openTopicId?: string | null; onOpenTopicHandled?: () => void }) {
+const stripAnswers = (questions: ExamQuestion[]): PublicExamQuestion[] =>
+  questions.map(({ question, optionA, optionB, optionC, optionD }) => ({ question, optionA, optionB, optionC, optionD }))
+
+export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
   const [items, setItems] = useState<Subject[]>([])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
@@ -14,6 +17,9 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
   const [topicParentId, setTopicParentId] = useState('')
   const [examName, setExamName] = useState('')
   const [examDescription, setExamDescription] = useState('')
+  const [timerEnabled, setTimerEnabled] = useState(false)
+  const [timerType, setTimerType] = useState<'perQuestion' | 'overall'>('perQuestion')
+  const [timerMinutes, setTimerMinutes] = useState('1')
   const [examFile, setExamFile] = useState<File | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([])
@@ -26,6 +32,7 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
   const [message, setMessage] = useState('')
   const [seeding, setSeeding] = useState(false)
   const [clearing, setClearing] = useState(false)
+  const [syncingSummaries, setSyncingSummaries] = useState(false)
   const [topicExams, setTopicExams] = useState<Exam[]>([])
   const [topicExamsLoading, setTopicExamsLoading] = useState(false)
   const [reviewingExam, setReviewingExam] = useState<Exam | null>(null)
@@ -47,13 +54,6 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
       .finally(() => setTopicExamsLoading(false))
   }, [viewItemId, items])
   useEffect(() => { setReviewingExam(null); cancelEditQuestion() }, [viewItemId])
-  useEffect(() => {
-    if (!openTopicId) return
-    if (!items.some((item) => item.id === openTopicId)) return
-    setViewItemId(openTopicId)
-    setCreateView(null)
-    onOpenTopicHandled?.()
-  }, [openTopicId, items, onOpenTopicHandled])
   const childrenOf = (id: string | null) => items
     .filter((item) => (item.parentId || null) === id && (id !== null || item.type !== 'mixed'))
     .sort((a, b) => (a.order || 0) - (b.order || 0))
@@ -80,6 +80,9 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
     setTopicParentId('')
     setExamName('')
     setExamDescription('')
+    setTimerEnabled(false)
+    setTimerType('perQuestion')
+    setTimerMinutes('1')
     setExamFile(null)
     setExamQuestions([])
     setExamStep('upload')
@@ -101,6 +104,9 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
     setTopicParentId('')
     setExamName('')
     setExamDescription('')
+    setTimerEnabled(false)
+    setTimerType('perQuestion')
+    setTimerMinutes('1')
     setExamFile(null)
     setExamQuestions([])
     setExamStep('upload')
@@ -141,18 +147,45 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
   async function submitExam() {
     if (!canEdit || !examName.trim() || !topicParentId || examQuestions.length === 0) return
     const createdTopicId = topicParentId
+    const timerSeconds = timerEnabled ? Math.max(1, Number(timerMinutes) || 1) * 60 : null
+    const timerFields = { timerEnabled, timerType: timerEnabled ? timerType : null, timerSeconds }
     try {
       const examRef = doc(collection(db, 'exams'))
-      await setDoc(examRef, { name: examName.trim(), description: examDescription.trim(), topicId: topicParentId, questions: examQuestions, status: 'published', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+      const batch = writeBatch(db)
+      batch.set(examRef, { name: examName.trim(), description: examDescription.trim(), topicId: topicParentId, questions: examQuestions, status: 'published', ...timerFields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+      batch.set(doc(db, 'examQuestions', examRef.id), { name: examName.trim(), topicId: topicParentId, questionCount: examQuestions.length, status: 'published', questions: stripAnswers(examQuestions), ...timerFields, updatedAt: serverTimestamp() })
+      await batch.commit()
       finishExamCreation(createdTopicId)
       setMessage('Exam created and published.')
       await load()
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to submit exam.') }
   }
+  async function syncExamSummaries() {
+    if (!canEdit || syncingSummaries) return
+    setSyncingSummaries(true)
+    try {
+      const examSnapshot = await getDocs(collection(db, 'exams'))
+      let batch = writeBatch(db)
+      let opCount = 0
+      const flush = async () => { if (opCount > 0) { await batch.commit(); batch = writeBatch(db); opCount = 0 } }
+      for (const examDoc of examSnapshot.docs) {
+        if (opCount >= 400) await flush()
+        const exam = examDoc.data() as Exam
+        batch.set(doc(db, 'examQuestions', examDoc.id), { name: exam.name, topicId: exam.topicId, questionCount: exam.questions?.length ?? 0, status: exam.status, questions: stripAnswers(exam.questions || []), timerEnabled: exam.timerEnabled ?? false, timerType: exam.timerType ?? null, timerSeconds: exam.timerSeconds ?? null, updatedAt: serverTimestamp() })
+        opCount++
+      }
+      await flush()
+      setMessage(`Synced ${examSnapshot.docs.length} exams for the mobile app.`)
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to sync exam data.') }
+    finally { setSyncingSummaries(false) }
+  }
   async function publishTopicExam(examId: string) {
     if (!canEdit) return
     try {
-      await updateDoc(doc(db, 'exams', examId), { status: 'published', updatedAt: serverTimestamp() })
+      const batch = writeBatch(db)
+      batch.update(doc(db, 'exams', examId), { status: 'published', updatedAt: serverTimestamp() })
+      batch.update(doc(db, 'examQuestions', examId), { status: 'published', updatedAt: serverTimestamp() })
+      await batch.commit()
       setTopicExams((current) => current.map((exam) => exam.id === examId ? { ...exam, status: 'published' } : exam))
       setReviewingExam((current) => current && current.id === examId ? { ...current, status: 'published' } : current)
       setMessage('Exam published.')
@@ -161,7 +194,10 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
   async function updateExamQuestion(exam: Exam, index: number, updated: ExamQuestion) {
     const questions = (exam.questions || []).map((question, questionIndex) => questionIndex === index ? updated : question)
     try {
-      await updateDoc(doc(db, 'exams', exam.id), { questions, updatedAt: serverTimestamp() })
+      const batch = writeBatch(db)
+      batch.update(doc(db, 'exams', exam.id), { questions, updatedAt: serverTimestamp() })
+      batch.update(doc(db, 'examQuestions', exam.id), { questions: stripAnswers(questions), updatedAt: serverTimestamp() })
+      await batch.commit()
       setTopicExams((current) => current.map((item) => item.id === exam.id ? { ...item, questions } : item))
       setReviewingExam((current) => current && current.id === exam.id ? { ...current, questions } : current)
       setMessage('Question updated.')
@@ -260,6 +296,9 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
         if (opCount >= 400) await flush()
         batch.delete(doc(db, 'exams', examDoc.id))
         opCount++; removed++
+        if (opCount >= 400) await flush()
+        batch.delete(doc(db, 'examQuestions', examDoc.id))
+        opCount++
       }
       await flush()
       setSelectedItemId('')
@@ -342,6 +381,7 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
               {canEdit && <>
                 <button disabled={!selectedItemId} onClick={() => openCreateView('topic', selectedItemId)}>Create topic</button>
                 <button disabled={seeding || clearing} onClick={() => { setActionOpen(false); void seedSubjects() }}>{seeding ? 'Seeding…' : 'Seed exam subjects'}</button>
+                <button disabled={syncingSummaries} onClick={() => { setActionOpen(false); void syncExamSummaries() }} title="Recreate examQuestions from every exam, so the mobile app's Tests list/take-test flow includes exams created before this feature existed">{syncingSummaries ? 'Syncing…' : 'Sync exam data for mobile'}</button>
                 <button disabled={seeding || clearing || items.length === 0} className="delete-action" onClick={() => { setActionOpen(false); void clearAllSubjects() }}>{clearing ? 'Removing…' : 'Clear all subjects'}</button>
               </>}
               <button disabled={!selectedItemId} onClick={() => { setViewItemId(selectedItemId); setCreateView(null); setActionOpen(false) }}>View</button>
@@ -374,6 +414,20 @@ export function Subjects({ role, openTopicId, onOpenTopicHandled }: { role: 'adm
         <div className="form-header"><h3>Create exam</h3><p>Upload a questions CSV for <strong>{items.find((item) => item.id === topicParentId)?.name || 'this topic'}</strong>, then review it.</p></div>
         <label>Exam Name<input required value={examName} onChange={(event) => setExamName(event.target.value)} /></label>
         <label>Description<textarea value={examDescription} onChange={(event) => setExamDescription(event.target.value)} /></label>
+        <div className="form-header"><h3>Timer</h3></div>
+        <div className="row">
+          <label><input type="radio" name="timerEnabled" checked={!timerEnabled} onChange={() => setTimerEnabled(false)} /> No timer</label>
+          <label><input type="radio" name="timerEnabled" checked={timerEnabled} onChange={() => setTimerEnabled(true)} /> Timer</label>
+        </div>
+        {timerEnabled && <>
+          <div className="row">
+            <label><input type="radio" name="timerType" checked={timerType === 'perQuestion'} onChange={() => setTimerType('perQuestion')} /> Per question</label>
+            <label><input type="radio" name="timerType" checked={timerType === 'overall'} onChange={() => setTimerType('overall')} /> Overall exam</label>
+          </div>
+          <label>{timerType === 'perQuestion' ? 'Minutes per question' : 'Total exam minutes'}
+            <input type="number" min="1" value={timerMinutes} onChange={(event) => setTimerMinutes(event.target.value)} />
+          </label>
+        </>}
         <div className="csv-upload-wrap">
           <label className={`csv-dropzone ${dragActive ? 'drag-active' : ''} ${examFile ? 'has-file' : ''}`}
             onDragOver={(event) => { event.preventDefault(); setDragActive(true) }}
