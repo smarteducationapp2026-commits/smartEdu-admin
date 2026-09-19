@@ -1,0 +1,4 @@
+.avatar-upload{position:relative;width:72px;height:72px}
+.avatar-upload .avatar{width:72px;height:72px}
+.avatar-edit{position:absolute;right:-4px;bottom:-4px;display:grid!important;place-items:center;width:26px;height:26px;border:2px solid #fff;border-radius:50%;background:#1767b1;color:#fff;cursor:pointer}
+.avatar-edit input{display:none}

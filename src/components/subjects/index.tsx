@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import './subjects.css'
 import type { Exam, ExamQuestion, Subject } from '../../core/types'
 import {
   clearAllSubjects,
@@ -17,7 +18,7 @@ import { IconButton } from '../shared/IconButton'
 import { QuestionCard } from '../shared/QuestionCard'
 import { StatusPill } from '../shared/StatusPill'
 import { SEED_SUBJECTS } from './subjectSeedData'
-import { parseExamQuestionsCsv } from './examQuestionCsv'
+import { parseExamQuestionsCsv } from '../shared/examQuestionCsv'
 
 export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
   const [items, setItems] = useState<Subject[]>([])

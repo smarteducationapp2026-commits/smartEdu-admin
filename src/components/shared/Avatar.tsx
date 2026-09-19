@@ -1,3 +1,4 @@
+import './shared.css'
 import type { User } from 'firebase/auth'
 
 export function Avatar({ user }: { user: Pick<User, 'photoURL' | 'displayName' | 'email'> }) {

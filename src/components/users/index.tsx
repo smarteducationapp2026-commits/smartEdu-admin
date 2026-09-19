@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import './users.css'
 import type { UserRecord } from '../../core/types'
 import { createAdminUser, listUsers } from '../../services/users'
 import { IconButton } from '../shared/IconButton'

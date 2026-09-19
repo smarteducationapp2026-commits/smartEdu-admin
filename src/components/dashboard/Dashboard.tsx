@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { User } from 'firebase/auth'
+import './dashboard.css'
 import { signOutAdmin } from '../../services/auth'
 import type { AdminUser } from '../../core/types'
 import { Avatar } from '../shared/Avatar'

@@ -1,0 +1,3 @@
+tr.clickable-row{cursor:pointer;transition:background-color .12s ease}
+tr.clickable-row:hover{background:#edf6ff}
+.exam-name-link{color:#1767b1;text-decoration:underline}

@@ -1,3 +1,5 @@
+import './shared.css'
+
 export function SearchInput({
   value,
   onChange,

@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
+import './profile.css'
 import type { AdminUser } from '../../core/types'
 import { sendPasswordReset } from '../../services/auth'
 import {

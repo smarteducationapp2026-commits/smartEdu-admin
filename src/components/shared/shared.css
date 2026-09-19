@@ -1,0 +1,60 @@
+/* Avatar */
+.avatar{width:38px;height:38px;border-radius:50%;object-fit:cover;border:2px solid #dce7ef}
+.avatar-fallback{display:grid;place-items:center;background:#dceeff;color:#1767b1;font-weight:800}
+
+/* IconButton */
+.icon-button{padding:4px 8px;background:transparent;color:#1767b1;font-size:16px}
+.icon-button:disabled{color:#9aabb7}
+
+/* BackHeading */
+.view-heading{display:flex;align-items:center;gap:14px;margin-bottom:8px}
+.view-heading h2{margin:0}
+.back-link{flex:0 0 auto;width:44px;height:44px;padding:0;display:grid;place-items:center;background:#edf6ff;color:#1767b1;border-radius:50%;font-size:26px;font-weight:900;line-height:1;box-shadow:none!important;transition:background-color .15s ease,transform .15s ease}
+.back-link:hover{background:#dceeff;transform:translateX(-3px)}
+.back-link:active{transform:translateX(-1px) scale(.94)}
+.back-link:focus-visible{outline:2px solid #1767b1;outline-offset:2px}
+
+/* SearchInput */
+.search-box{position:relative;flex:1;min-width:0}
+.search-box input{padding-left:38px}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#8598a8;pointer-events:none}
+
+/* StatusPill */
+.status-pill{display:inline-block;padding:2px 10px;border-radius:999px;font-size:11px;font-weight:700;text-transform:capitalize}
+.status-pill.status-published{background:#e6f7ec;color:#1c9a5b}
+.status-pill.status-created{background:#fff4e0;color:#b7791f}
+.status-pill.status-draft{background:#eef3f7;color:#6b7d8c}
+
+/* QuestionCard (also relied on by Exams/Subjects, which both render it) */
+.question-cards{display:grid;gap:14px}
+.question-card{background:#fff;border:1px solid #dce7ef;border-radius:14px;padding:18px;box-shadow:0 6px 16px -10px #16466b26}
+.question-index{margin:0 0 4px;font-size:11px;font-weight:800;letter-spacing:.08em;color:#1767b1;text-transform:uppercase}
+.question-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.question-card-head .question-index{margin:0}
+.question-card.editing .form{margin-top:10px}
+.question-text{margin:0 0 14px;font-weight:700;color:#102b43;font-size:16px}
+.option-list{display:grid;gap:8px;margin-bottom:12px}
+.option-row{display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid #e4edf2;border-radius:9px;background:#f8fbfd}
+.option-row.correct{border-color:#1c9a5b;background:#eafaf1}
+.option-letter{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:#eef3f7;color:#45566a;font-size:12px;font-weight:800;flex:0 0 auto}
+.option-row.correct .option-letter{background:#1c9a5b;color:#fff}
+.option-text{flex:1}
+.option-check{color:#1c9a5b;font-weight:800}
+.question-explanation{margin:0;font-size:13px;color:#45566a;background:#f4f8fc;padding:10px 12px;border-radius:9px}
+
+/* ExamCreator (also relied on directly by Subjects' own exam-creation JSX) */
+.create-metadata-form{max-width:620px}
+.exam-review{display:grid;gap:18px;max-width:720px}
+.csv-upload-wrap{display:grid;gap:10px}
+.csv-dropzone{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:30px 16px;border:2px dashed #bfd3e2;border-radius:14px;background:#f8fbfd;cursor:pointer;text-align:center;transition:border-color .15s ease,background-color .15s ease}
+.csv-dropzone:hover{border-color:#1767b1;background:#edf6ff}
+.csv-dropzone.drag-active{border-color:#1767b1;background:#e3f2ff}
+.csv-dropzone.has-file{border-style:solid;border-color:#1767b1;background:#edf6ff}
+.csv-dropzone input{display:none}
+.csv-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:50%;background:#dceeff;color:#1767b1;font-size:18px;font-weight:700}
+.csv-title{font-weight:700;color:#172033}
+.csv-hint{font-size:12px;color:#6b7d8c}
+.csv-filename{font-weight:700;color:#1767b1;word-break:break-all;max-width:100%}
+.csv-columns-hint{font-size:12px;color:#607586}
+.csv-columns-hint summary{cursor:pointer;font-weight:700;color:#1767b1}
+.csv-columns-hint p{margin:6px 0 0}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import './exams.css'
 import type { Exam } from '../../core/types'
 import { loadExams } from '../../services/exams'
 import { BackHeading } from '../shared/BackHeading'

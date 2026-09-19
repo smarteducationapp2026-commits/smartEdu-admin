@@ -1,3 +1,4 @@
+import './shared.css'
 import type { ExamQuestion } from '../../core/types'
 import { IconButton } from './IconButton'
 

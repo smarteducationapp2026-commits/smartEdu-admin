@@ -52,5 +52,6 @@ export type Exam = { id: string; topicId: string; name: string; description?: st
 export type PublicExamQuestion = { question: string; optionA: string; optionB: string; optionC: string; optionD: string }
 export type PublicExam = { id: string; name: string; topicId: string; questionCount: number; status: ExamStatus; questions: PublicExamQuestion[]; updatedAt?: { seconds?: number } } & ExamTimerFields
 export type TestSeriesStatus = 'draft' | 'published'
-export type TestSeries = { id: string; title: string; description?: string; courseId: string; examIds: string[]; thumbnailUrl?: string; status: TestSeriesStatus; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number } }
+export type PricingType = 'free' | 'paid'
+export type TestSeries = { id: string; title: string; description?: string; courseId: string; examIds: string[]; thumbnailUrl?: string; status: TestSeriesStatus; pricingType?: PricingType; price?: number; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number }; publishedAt?: { seconds?: number } }
 export type AdminUser = Pick<User, 'email' | 'displayName' | 'photoURL'> & { uid: string }

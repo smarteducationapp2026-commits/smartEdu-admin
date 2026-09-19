@@ -1,6 +1,6 @@
 import { collection, doc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../core/firebase'
-import type { Course, ExamAnswerOption, ExamQuestion, PublicExam, Subject, TestSeries } from '../core/types'
+import type { Course, ExamAnswerOption, ExamQuestion, PricingType, PublicExam, Subject, TestSeries } from '../core/types'
 import { createCourse } from './courses'
 
 export type TestSeriesData = { series: TestSeries[]; courses: Course[]; exams: PublicExam[]; topicNames: Record<string, string> }
@@ -20,13 +20,16 @@ export async function loadTestSeriesData(): Promise<TestSeriesData> {
   }
 }
 
-export async function updateSeriesStatus(seriesId: string, status: 'draft' | 'published'): Promise<void> {
-  await updateDoc(doc(db, 'testSeries', seriesId), { status, updatedAt: serverTimestamp() })
+// Publishing is one-way — once a series is live there's no "unpublish". This just
+// pushes the currently-saved fields live and stamps publishedAt so the admin panel
+// can tell whether there are saved-but-not-yet-published changes.
+export async function publishTestSeries(seriesId: string): Promise<void> {
+  await updateDoc(doc(db, 'testSeries', seriesId), { status: 'published', publishedAt: serverTimestamp(), updatedAt: serverTimestamp() })
 }
 
-export type SaveTestSeriesFields = { title: string; description: string; courseId: string; examIds: string[]; status: 'draft' | 'published' }
+export type SaveTestSeriesFields = { title: string; description: string; courseId: string; examIds: string[]; status: 'draft' | 'published'; pricingType: PricingType; price: number }
 
-export async function saveTestSeries(seriesId: string | null, fields: SaveTestSeriesFields): Promise<void> {
+export async function saveTestSeries(seriesId: string | null, fields: SaveTestSeriesFields): Promise<string> {
   const seriesRef = seriesId ? doc(db, 'testSeries', seriesId) : doc(collection(db, 'testSeries'))
   await setDoc(seriesRef, {
     title: fields.title.trim(),
@@ -34,9 +37,12 @@ export async function saveTestSeries(seriesId: string | null, fields: SaveTestSe
     courseId: fields.courseId,
     examIds: fields.examIds,
     status: fields.status,
+    pricingType: fields.pricingType,
+    price: fields.pricingType === 'paid' ? fields.price : 0,
     updatedAt: serverTimestamp(),
     ...(seriesId ? {} : { createdAt: serverTimestamp() }),
   }, { merge: true })
+  return seriesRef.id
 }
 
 const DEMO_SERIES_COUNT = 8

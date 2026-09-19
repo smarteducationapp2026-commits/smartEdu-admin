@@ -32,13 +32,14 @@ export async function createSubjectItem(params: CreateSubjectItemParams): Promis
 
 export type CreateExamParams = { name: string; description: string; topicId: string; questions: ExamQuestion[]; timerEnabled: boolean; timerType: 'perQuestion' | 'overall' | null; timerSeconds: number | null }
 
-export async function createExam(params: CreateExamParams): Promise<void> {
+export async function createExam(params: CreateExamParams): Promise<string> {
   const timerFields = { timerEnabled: params.timerEnabled, timerType: params.timerType, timerSeconds: params.timerSeconds }
   const examRef = doc(collection(db, 'exams'))
   const batch = writeBatch(db)
   batch.set(examRef, { name: params.name.trim(), description: params.description.trim(), topicId: params.topicId, questions: params.questions, status: 'published', ...timerFields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
   batch.set(doc(db, 'examQuestions', examRef.id), { name: params.name.trim(), topicId: params.topicId, questionCount: params.questions.length, status: 'published', questions: stripAnswers(params.questions), ...timerFields, updatedAt: serverTimestamp() })
   await batch.commit()
+  return examRef.id
 }
 
 // Recreates examQuestions (the public, answer-stripped summary the mobile app reads)

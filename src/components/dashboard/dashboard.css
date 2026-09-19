@@ -1,0 +1,36 @@
+.layout{--sidebar-width:250px;min-height:100vh}
+.layout.sidebar-collapsed{--sidebar-width:76px}
+aside{position:fixed;inset:0 auto 0 0;width:var(--sidebar-width);z-index:20;background:#103a5c;color:#dbeeff;padding:30px 14px;display:flex;flex-direction:column;transition:width .2s ease;overflow:hidden}
+aside h2{color:#fff;margin:8px 6px 32px;white-space:nowrap}
+nav{display:grid;gap:8px}
+nav button{display:flex;align-items:center;gap:14px;background:transparent;text-align:left;color:#c8def1;white-space:nowrap}
+.selected,nav button:hover{background:#1767b1!important;color:#fff!important}
+.menu-icon{display:inline-grid;place-items:center;width:32px;min-width:32px;font-size:18px}
+.signout{display:flex;align-items:center;gap:14px;margin-top:auto;background:#d94747;white-space:nowrap}
+.sidebar-collapsed .sidebar-label{display:none}
+.sidebar-collapsed nav button,.sidebar-collapsed .signout{justify-content:center;padding-inline:8px}
+.content{min-height:100vh;margin-left:var(--sidebar-width);padding:108px 34px 34px;max-width:calc(1300px + var(--sidebar-width));width:calc(100% - var(--sidebar-width));transition:margin-left .2s ease,width .2s ease}
+.topbar{position:fixed;top:0;right:0;left:var(--sidebar-width);z-index:15;display:flex;justify-content:space-between;align-items:center;padding:18px 34px;background:#f4f8fcf7;border-bottom:1px solid #dce7ef;backdrop-filter:blur(10px);transition:left .2s ease}
+.brand,.profile-trigger{display:flex;align-items:center;gap:10px}
+.brand{font-size:18px;color:#103a5c}
+.sidebar-toggle{padding:6px 10px;background:transparent;color:#1767b1;font-size:24px;line-height:1}
+.sidebar-toggle:hover{background:#edf6ff}
+.brand-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#1767b1;color:#fff;font-weight:800}
+.brand-banner{font-size:12px;color:#6b7d8c;font-weight:400;border-left:1px solid #cbd8e2;padding-left:12px}
+.profile-menu{position:relative}
+.profile-trigger{background:transparent;color:#172033;padding:4px 8px}
+.profile-trigger:hover{background:#edf6ff}
+.profile-name{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chevron{color:#6b7d8c}
+
+@media(max-width:760px){
+  .layout{--sidebar-width:0}
+  .layout.sidebar-collapsed{--sidebar-width:0}
+  .layout aside{position:fixed;width:250px;transform:translateX(-100%);padding-top:88px}
+  .layout:not(.sidebar-collapsed) aside{transform:translateX(0)}
+  .content{width:100%;margin-left:0;padding:100px 20px 20px}
+  .topbar{left:0;padding:14px 20px}
+  .brand-banner{display:none}
+  .profile-name{display:none}
+  .sidebar-collapsed .sidebar-label{display:none}
+}
