@@ -37,11 +37,12 @@ export type WalletTransaction = {
   createdAt?: { seconds?: number }
 }
 
-export type AdminRole = 'user' | 'admin' | 'superAdmin'
 export type InstituteRole = 'institute' | 'admin'
 export type Course = { id: string; title: string; offer?: string; active?: boolean }
 export type AcademicStatus = 'active' | 'inactive'
 export type Subject = { id: string; parentId?: string | null; name: string; code?: string; description?: string; type?: 'subject' | 'topic' | 'subtopic' | 'mixed'; status?: AcademicStatus; order?: number }
+export type SeedTopic = { name: string; subtopics?: string[] }
+export type SeedSubject = { name: string; topics: SeedTopic[] }
 export type ExamStatus = 'draft' | 'created' | 'published'
 export type ExamAnswerOption = 'A' | 'B' | 'C' | 'D'
 export type ExamTimerType = 'perQuestion' | 'overall'

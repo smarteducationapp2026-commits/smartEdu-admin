@@ -1,0 +1,91 @@
+import { useEffect, useState, type FormEvent } from 'react'
+import type { User } from 'firebase/auth'
+import {
+  getAdminRole,
+  signInAdmin,
+  signOutAdmin,
+  watchAuthState,
+  type AdminRole,
+} from '../../services/auth'
+import { Dashboard } from '../dashboard/Dashboard'
+import '../../App.css'
+
+function Login({ error, onError }: { error: string; onError: (value: string) => void }) {
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    onError('')
+    try {
+      await signInAdmin(email, password)
+    } catch {
+      onError('Unable to sign in. Check your credentials and admin permissions.')
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <main className="center">
+      <form className="card narrow form" onSubmit={submit}>
+        <p className="eyebrow">SMARTEDU ADMIN</p>
+        <h1>Welcome back</h1>
+        <p>Sign in with your administrator account.</p>
+        <label>
+          Email
+          <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+        </label>
+        <label>
+          Password
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+        </label>
+        {error && <div className="error">{error}</div>}
+        <button disabled={busy}>{busy ? 'Signing in…' : 'Sign in'}</button>
+      </form>
+    </main>
+  )
+}
+
+export function Auth() {
+  const [user, setUser] = useState<User | null>(null)
+  const [adminRole, setAdminRole] = useState<AdminRole | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  useEffect(
+    () =>
+      watchAuthState(async (nextUser) => {
+        setUser(nextUser)
+        setAdminRole(null)
+        if (nextUser) {
+          const role = await getAdminRole(nextUser.uid)
+          setAdminRole(role)
+          if (!role) {
+            setError('This account is not authorized for SmartEdu Admin.')
+            await signOutAdmin()
+          }
+        }
+        setLoading(false)
+      }),
+    [],
+  )
+  if (loading) return <main className="center">Loading SmartEdu Admin…</main>
+  if (!user) return <Login onError={setError} error={error} />
+  if (!adminRole)
+    return (
+      <main className="center">
+        <section className="card narrow">
+          <p className="eyebrow">SMARTEDU ADMIN</p>
+          <h1>Admin access required</h1>
+          <p>Your account is signed in, but its Firestore profile is not an admin profile.</p>
+          <button onClick={() => void signOutAdmin()}>Sign out</button>
+        </section>
+      </main>
+    )
+  return <Dashboard user={user} role={adminRole} />
+}

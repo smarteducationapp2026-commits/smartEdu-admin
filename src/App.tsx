@@ -1,4 +1,4 @@
-import { Auth } from './features/auth/Auth'
+import { Auth } from './components/auth/Auth'
 
 export default function App() {
   return <Auth />

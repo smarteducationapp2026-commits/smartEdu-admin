@@ -41,6 +41,7 @@ export const db = getFirestore(app)
 export const storage = getStorage(app)
 
 // Cloud Functions require the Firebase Blaze plan (this project is currently
-// on Spark), so adminAdjustWallet is disabled — see Wallet.tsx. Uncomment
-// once Blaze is enabled and functions/src/wallet.ts is re-enabled.
+// on Spark), so adminAdjustWallet is disabled — wallet credits are instead
+// written directly from Users.tsx (see firestore.rules). Uncomment once
+// Blaze is enabled and functions/src/wallet.ts is re-enabled.
 // export const functions = getFunctions(app)
