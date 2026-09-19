@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import type { Course, PublicExam } from '../../core/types'
 import { BackHeading } from '../shared/BackHeading'
+import { ConfirmDialog } from '../shared/ConfirmDialog'
 import { ExamCreator } from '../shared/ExamCreator'
 import { SearchInput } from '../shared/SearchInput'
 import type { FormState } from './formState'
@@ -24,6 +25,7 @@ export function TestSeriesForm({
   onBack,
   onSubmit,
   onPublish,
+  onDelete,
   onToggleExam,
   onExamCreated,
 }: {
@@ -42,10 +44,12 @@ export function TestSeriesForm({
   onBack: () => void
   onSubmit: (event: FormEvent) => void
   onPublish: () => void
+  onDelete: () => void
   onToggleExam: (examId: string) => void
   onExamCreated: (examId: string) => void
 }) {
   const [creatingTest, setCreatingTest] = useState(false)
+  const [confirmingDelete, setConfirmingDelete] = useState(false)
   const hasUnpublishedChanges =
     editingId != null && ((updatedAt?.seconds ?? 0) > (publishedAt?.seconds ?? 0))
   const selectedExams = form.examIds
@@ -83,12 +87,38 @@ export function TestSeriesForm({
           >
             {form.status === 'published' && !hasUnpublishedChanges ? 'Published' : 'Publish'}
           </button>
+          <button
+            type="button"
+            className="medium-button danger-button"
+            disabled={!editingId}
+            title={!editingId ? 'Save the series first' : undefined}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            Delete
+          </button>
         </div>
       </div>
       {hasUnpublishedChanges && (
         <p className="notice unpublished-notice">
           There are unpublished changes saved. Please publish to make them live.
         </p>
+      )}
+      {confirmingDelete && (
+        <ConfirmDialog
+          title="Delete this test series?"
+          danger
+          confirmLabel="Delete"
+          message={
+            form.status === 'published'
+              ? 'This test series is published and visible to students right now. Deleting it removes it immediately, and this can’t be undone.'
+              : 'This test series is only saved as a draft and hasn’t been published. Delete it anyway? This can’t be undone.'
+          }
+          onCancel={() => setConfirmingDelete(false)}
+          onConfirm={() => {
+            setConfirmingDelete(false)
+            onDelete()
+          }}
+        />
       )}
       <form id="test-series-form" className="card form" onSubmit={onSubmit}>
         <div className="grid12">

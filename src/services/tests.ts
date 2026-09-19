@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
+import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../core/firebase'
 import type { Course, ExamAnswerOption, ExamQuestion, PricingType, PublicExam, Subject, TestSeries } from '../core/types'
 import { createCourse } from './courses'
@@ -43,6 +43,10 @@ export async function saveTestSeries(seriesId: string | null, fields: SaveTestSe
     ...(seriesId ? {} : { createdAt: serverTimestamp() }),
   }, { merge: true })
   return seriesRef.id
+}
+
+export async function deleteTestSeries(seriesId: string): Promise<void> {
+  await deleteDoc(doc(db, 'testSeries', seriesId))
 }
 
 const DEMO_SERIES_COUNT = 8

@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import './tests.css'
 import type { Course, PublicExam, TestSeries } from '../../core/types'
-import { loadTestSeriesData, publishTestSeries, saveTestSeries } from '../../services/tests'
+import { deleteTestSeries, loadTestSeriesData, publishTestSeries, saveTestSeries } from '../../services/tests'
 import { emptyForm, type FormState } from './formState'
 import { TestSeriesForm } from './TestSeriesForm'
 import { TestSeriesList } from './TestSeriesList'
@@ -90,6 +90,15 @@ export function Tests({ role }: { role: 'admin' | 'superAdmin' }) {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to publish.') }
   }
 
+  async function deleteSeries() {
+    if (!canEdit || !editingId) return
+    try {
+      await deleteTestSeries(editingId)
+      setView('list')
+      await load()
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Unable to delete test series.') }
+  }
+
   async function handleExamCreated(examId: string) {
     await load()
     setForm((current) =>
@@ -140,6 +149,7 @@ export function Tests({ role }: { role: 'admin' | 'superAdmin' }) {
         onBack={() => setView('list')}
         onSubmit={saveSeries}
         onPublish={() => void publishSeries()}
+        onDelete={() => void deleteSeries()}
         onToggleExam={toggleExam}
         onExamCreated={(examId) => void handleExamCreated(examId)}
       />
