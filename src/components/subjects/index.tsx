@@ -2,22 +2,18 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import './subjects.css'
 import type { Exam, ExamQuestion, Subject } from '../../core/types'
 import {
-  clearAllSubjects,
   createExam,
   createSubjectItem,
   deleteSubjectTree,
   listExamsForTopic,
   listSubjects,
   publishExam,
-  seedSubjects,
-  syncExamSummaries,
   updateExamQuestions,
 } from '../../services/subjects'
 import { BackHeading } from '../shared/BackHeading'
 import { IconButton } from '../shared/IconButton'
 import { QuestionCard } from '../shared/QuestionCard'
 import { StatusPill } from '../shared/StatusPill'
-import { SEED_SUBJECTS } from './subjectSeedData'
 import { parseExamQuestionsCsv } from '../shared/examQuestionCsv'
 
 export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
@@ -42,9 +38,6 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
   const [createView, setCreateView] = useState<'subject' | 'topic' | 'exam' | null>(null)
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
   const [message, setMessage] = useState('')
-  const [seeding, setSeeding] = useState(false)
-  const [clearing, setClearing] = useState(false)
-  const [syncingSummaries, setSyncingSummaries] = useState(false)
   const [topicExams, setTopicExams] = useState<Exam[]>([])
   const [topicExamsLoading, setTopicExamsLoading] = useState(false)
   const [reviewingExam, setReviewingExam] = useState<Exam | null>(null)
@@ -204,18 +197,6 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
       await load()
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to submit exam.')
-    }
-  }
-  async function syncExams() {
-    if (!canEdit || syncingSummaries) return
-    setSyncingSummaries(true)
-    try {
-      const count = await syncExamSummaries()
-      setMessage(`Synced ${count} exams for the mobile app.`)
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to sync exam data.')
-    } finally {
-      setSyncingSummaries(false)
     }
   }
   async function publishTopicExam(examId: string) {
@@ -388,58 +369,6 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
       setMessage(error instanceof Error ? error.message : 'Unable to delete subject item.')
     }
   }
-  async function clearSubjects() {
-    if (!canEdit || seeding || clearing) return
-    if (items.length === 0) {
-      setMessage('No subjects to remove.')
-      return
-    }
-    if (
-      !window.confirm(
-        `Delete all ${items.length} subject/topic/subtopic items and every exam linked to them? This cannot be undone.`,
-      )
-    )
-      return
-    setClearing(true)
-    try {
-      const removed = await clearAllSubjects(items)
-      setSelectedItemId('')
-      setViewItemId('')
-      setMessage(`Removed ${removed} items.`)
-      await load()
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to remove subjects.')
-    } finally {
-      setClearing(false)
-    }
-  }
-  async function applySeedSubjects() {
-    if (!canEdit || seeding || clearing) return
-    const existingNames = new Set(childrenOf(null).map((item) => item.name.toLowerCase()))
-    const toCreate = SEED_SUBJECTS.filter(
-      (subject) => !existingNames.has(subject.name.toLowerCase()),
-    )
-    if (toCreate.length === 0) {
-      setMessage('All seed subjects already exist.')
-      return
-    }
-    if (
-      !window.confirm(
-        `Create ${toCreate.length} competitive-exam subjects with their topics and subtopics?`,
-      )
-    )
-      return
-    setSeeding(true)
-    try {
-      const created = await seedSubjects(toCreate, childrenOf(null).length)
-      setMessage(`Seeded ${created} subject/topic/subtopic items.`)
-      await load()
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to seed subjects.')
-    } finally {
-      setSeeding(false)
-    }
-  }
   function renderTree(parent: string | null, depth = 0): ReactNode {
     const siblings = childrenOf(parent)
     return siblings.map((item) => {
@@ -518,43 +447,12 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
                 {actionOpen && (
                   <div className="dropdown">
                     {canEdit && (
-                      <>
-                        <button
-                          disabled={!selectedItemId}
-                          onClick={() => openCreateView('topic', selectedItemId)}
-                        >
-                          Create topic
-                        </button>
-                        <button
-                          disabled={seeding || clearing}
-                          onClick={() => {
-                            setActionOpen(false)
-                            void applySeedSubjects()
-                          }}
-                        >
-                          {seeding ? 'Seeding…' : 'Seed exam subjects'}
-                        </button>
-                        <button
-                          disabled={syncingSummaries}
-                          onClick={() => {
-                            setActionOpen(false)
-                            void syncExams()
-                          }}
-                          title="Recreate examQuestions from every exam, so the mobile app's Tests list/take-test flow includes exams created before this feature existed"
-                        >
-                          {syncingSummaries ? 'Syncing…' : 'Sync exam data for mobile'}
-                        </button>
-                        <button
-                          disabled={seeding || clearing || items.length === 0}
-                          className="delete-action"
-                          onClick={() => {
-                            setActionOpen(false)
-                            void clearSubjects()
-                          }}
-                        >
-                          {clearing ? 'Removing…' : 'Clear all subjects'}
-                        </button>
-                      </>
+                      <button
+                        disabled={!selectedItemId}
+                        onClick={() => openCreateView('topic', selectedItemId)}
+                      >
+                        Create topic
+                      </button>
                     )}
                     <button
                       disabled={!selectedItemId}
