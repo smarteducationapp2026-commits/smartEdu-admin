@@ -2,17 +2,26 @@ import { useState } from 'react'
 import './shared.css'
 import type { ExamQuestion } from '../../core/types'
 import { createExam } from '../../services/subjects'
-import { parseExamQuestionsCsv } from './examQuestionCsv'
 import { parseExamQuestionsWord } from './examQuestionsWord'
 import { QuestionCard } from './QuestionCard'
 
+export type ExamCreatedInfo = { status: 'draft' | 'published' }
+
+// Common exam creator. A test lives in exactly one place: under a Subjects
+// folder (topicId set) or only inside a test series (topicId "").
 export function ExamCreator({
   topicId,
+  fixedLabel,
+  statusMode,
+  contextLabel,
   onCreated,
   onCancel,
 }: {
   topicId: string
-  onCreated: (examId: string) => void
+  fixedLabel?: string
+  statusMode: 'published' | 'draft'
+  contextLabel?: string
+  onCreated: (examId: string, info: ExamCreatedInfo) => void
   onCancel: () => void
 }) {
   const [examName, setExamName] = useState('')
@@ -38,10 +47,7 @@ export function ExamCreator({
   async function reviewExamQuestions() {
     if (!examFile) return
     try {
-      const isWord = examFile.name.toLowerCase().endsWith('.docx')
-      const result = isWord
-        ? await parseExamQuestionsWord(await examFile.arrayBuffer())
-        : parseExamQuestionsCsv(await examFile.text())
+      const result = await parseExamQuestionsWord(await examFile.arrayBuffer())
       if (!result.ok) {
         setExamQuestions([])
         setStep('upload')
@@ -65,11 +71,11 @@ export function ExamCreator({
     setEditDraft(null)
   }
 
-  async function submit() {
+  async function submit(status: 'draft' | 'published') {
     if (!examName.trim() || examQuestions.length === 0 || submitting) return
     const timerSeconds = timerEnabled ? Math.max(1, Number(timerMinutes) || 1) * 60 : null
     setSubmitting(true)
-    setMessage('Creating test…')
+    setMessage(status === 'published' ? 'Creating test…' : 'Saving draft…')
     try {
       const examId = await createExam({
         name: examName,
@@ -79,8 +85,9 @@ export function ExamCreator({
         timerEnabled,
         timerType: timerEnabled ? timerType : null,
         timerSeconds,
+        status,
       })
-      onCreated(examId)
+      onCreated(examId, { status })
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to create test.')
     } finally {
@@ -204,8 +211,8 @@ export function ExamCreator({
           <button type="button" className="secondary" onClick={onCancel}>
             Cancel
           </button>
-          <button type="button" className="medium-button" disabled={submitting} onClick={() => void submit()}>
-            {submitting ? 'Creating…' : 'Submit'}
+          <button type="button" className="medium-button" disabled={submitting} onClick={() => void submit(statusMode)}>
+            {submitting ? (statusMode === 'draft' ? 'Saving…' : 'Creating…') : statusMode === 'draft' ? 'Save draft' : 'Submit'}
           </button>
         </div>
         {message && <p className="notice">{message}</p>}
@@ -217,7 +224,18 @@ export function ExamCreator({
     <div className="form create-metadata-form">
       <div className="form-header">
         <h3>Create test</h3>
-        <p>Upload a questions CSV, then review it.</p>
+        {fixedLabel ? (
+          <p>
+            Upload a questions Word document for <strong className="creator-context-name">{fixedLabel}</strong>, then review it.
+          </p>
+        ) : contextLabel ? (
+          <p>
+            Upload a questions Word document for test series{' '}
+            <strong className="creator-context-name">{contextLabel}</strong>, then review it.
+          </p>
+        ) : (
+          <p>Upload a questions Word document, then review it.</p>
+        )}
       </div>
       <label>
         Test name
@@ -300,7 +318,7 @@ export function ExamCreator({
         >
           <input
             type="file"
-            accept=".csv,text/csv,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             onChange={(e) => handleExamFile(e.target.files?.[0] || null)}
           />
           <span className="csv-icon">↑</span>
@@ -309,7 +327,7 @@ export function ExamCreator({
           ) : (
             <>
               <span className="csv-title">Click to upload or drag & drop</span>
-              <span className="csv-hint">.csv or .docx file with your exam questions</span>
+              <span className="csv-hint">.docx file with your exam questions</span>
             </>
           )}
         </label>
@@ -325,13 +343,9 @@ export function ExamCreator({
         <details className="csv-columns-hint">
           <summary>Expected format</summary>
           <p>
-            <strong>.csv</strong> columns: question, optionA, optionB, optionC, optionD, correctAnswer
-            (A/B/C/D), explanation (optional).
-          </p>
-          <p>
-            <strong>.docx</strong>: one table per question, with rows labeled Question, Type, Option
-            (one row per option, starting each with "(a)", "(b)", "(c)", "(d)", and marked
-            correct/Incorrect in the next column), Solution (with an "Explanation:" section), and Marks.
+            One table per question, with rows labeled Question, Type, Option (one row per option,
+            starting each with "(a)", "(b)", "(c)", "(d)", and marked correct/Incorrect in the next
+            column), Solution (with an "Explanation:" section), and Marks.
           </p>
         </details>
       </div>

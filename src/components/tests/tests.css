@@ -1,9 +1,14 @@
 /* TestSeriesForm */
-.series-form-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap}
 .unpublished-notice{background:#fff4e0;color:#b7791f;font-weight:700}
-.test-series-cover-preview{display:grid;place-items:center;width:100%;height:150px;border-radius:14px;color:#fff;font-weight:800;font-size:40px}
-.series-head-actions{display:flex;gap:12px;align-items:center;flex:0 0 auto}
+.test-series-cover-preview{display:grid;place-items:center;width:100%;height:150px;border-radius:14px;color:#fff}
 .cover-wrap{position:relative;justify-self:start;width:min(300px,100%)}
+.cover-wrap.series-cover-full{width:100%}
+.series-cover-row{display:flex;gap:18px;margin-bottom:16px;flex-wrap:wrap}
+.cover-wrap.series-cover-half{flex:1 1 240px;width:100%}
+.series-cover-side{flex:1 1 240px;display:grid;gap:14px;align-content:start;min-width:0}
+.series-cover-side .series-stacked{margin-bottom:0}
+.series-stacked{display:grid;gap:8px;margin-bottom:16px}
+.series-stacked-label{font-weight:700;font-size:14px;color:#172033}
 .pricing-field{display:grid;gap:10px;align-content:start}
 .pricing-field-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .pricing-toggle{display:inline-flex;background:#eef3f7;border-radius:999px;padding:4px;gap:4px;width:fit-content}
@@ -12,13 +17,122 @@
 .pricing-toggle-option.active{background:#1767b1;color:#fff}
 .exam-picker-toolbar{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .exam-picker-toolbar h3{margin:0}
-.exam-picker{position:relative}
+.exam-picker{position:relative;margin-bottom:16px}
 .exam-picker-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:5;max-height:260px;overflow:auto;background:#fff;border:1px solid #dce7ef;border-radius:10px;box-shadow:0 12px 28px #16466b26;padding:6px}
-.exam-picker-option{display:block;width:100%;text-align:left;background:#fff;color:#172033;margin-bottom:2px;font-weight:400}
+.exam-picker-option{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px;border-radius:8px}
 .exam-picker-option:hover{background:#edf6ff}
+.exam-picker-option-info{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-width:0;color:#172033}
+.exam-picker-option-info small{color:#607586}
 .exam-picker-empty{margin:4px 8px;color:#6b7d8c;font-size:13px}
-.exam-picker-selected-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #eef3f7}
-.exam-picker-selected-row:last-child{border-bottom:none}
+/* Review button: orange when enabled */
+.review-ready{background:linear-gradient(135deg,#ffb703,#fb8500);color:#3a2200;border:none}
+/* Publish button: green when enabled */
+.publish-ready{background:#1c9a5b;color:#fff;border:none}
+.confirm-dialog-check{display:flex;align-items:center;gap:8px;margin:0 0 14px;font-size:14px;color:#172033}
+/* Large review + publish modal */
+.review-modal{width:min(720px,calc(100vw - 48px));max-height:calc(100vh - 96px);overflow:auto}
+/* Added-tests table */
+.exam-table{display:grid}
+.exam-table-row{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1.4fr) auto auto;gap:12px;align-items:center;padding:10px 4px;border-bottom:1px solid #eef3f7}
+.exam-table-row:last-child{border-bottom:none}
+.exam-table-head{font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#607586}
+.exam-table-name{font-weight:600;color:#172033;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.exam-table-meta{color:#607586;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.series-review-actions{display:flex;gap:8px;flex:0 0 auto}
+.exam-picker-hint{margin:0 0 14px;color:#607586;font-size:13px}
+.exam-picker-list-title{margin:0 0 8px;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#607586}
+
+/* Step 2: two ways to add tests */
+.exam-picker-toolbar .exam-picker-hint{margin:0;flex:1 1 240px}
+
+/* Step 2 option panels */
+.test-options{display:grid;gap:12px;margin-bottom:16px}
+@media(min-width:720px){.test-options{grid-template-columns:1fr 1fr}}
+.test-option{display:flex;gap:12px;background:#f4f8fb;border:1px solid #dce7ef;border-radius:12px;padding:14px}
+.test-option-badge{display:grid;place-items:center;width:30px;height:30px;flex:0 0 auto;border-radius:50%;background:#1767b1;color:#fff;font-weight:800;font-size:14px}
+.test-option-body{display:grid;gap:6px;align-content:start;justify-items:start}
+.test-option-body strong{font-size:14px;color:#172033}
+.test-option-body p{margin:0;font-size:13px;color:#607586}
+.series-step-card .test-option{background:none;border:none;border-bottom:1px solid #e4edf2;border-radius:0;padding:14px 0}
+.series-step-card .test-option:last-child{border-bottom:none}
+
+/* Step cards */
+.series-card-title{margin:0;color:#172033;font-size:16px;font-weight:800}
+.series-card-toggle{display:flex;justify-content:space-between;align-items:center;gap:12px;width:100%;background:none;border:none;box-shadow:none;padding:0;margin:0;cursor:pointer;text-align:left;font:inherit;color:#172033}
+.series-card-toggle:hover{transform:none;background:none;box-shadow:none}
+.series-step-card{box-shadow:none}
+/* Flat look inside step cards: no shadow layers */
+.series-step-card .card{box-shadow:none}
+.series-step-card .status-dot{box-shadow:none}
+.series-step-card button{box-shadow:none}
+.series-step-card button:hover{box-shadow:none}
+/* Steps 2-3: same flat treatment, no shadow layers */
+.series-step-card .search-box input{background:transparent!important;border:none!important;border-bottom:1px solid #cbd8e2!important;border-radius:0!important;box-shadow:none!important;padding:12px 30px}
+.series-step-card .search-box input:focus{outline:none!important;background:transparent!important;border-bottom:2px solid #1767b1!important;box-shadow:none!important}
+.series-step-card .search-box .search-icon{left:2px}
+.series-step-card .search-box .search-clear{right:0}
+.series-step-card .exam-picker-dropdown{box-shadow:none}
+.series-step-card .series-field input,
+.series-step-card .series-field textarea,
+.series-step-card .series-stacked input,
+.series-step-card .series-stacked textarea{background:transparent!important;border:none!important;border-bottom:1px solid #cbd8e2!important;border-radius:0!important;box-shadow:none!important;padding-left:0;padding-right:0}
+.series-step-card .series-field input:focus,
+.series-step-card .series-field textarea:focus,
+.series-step-card .series-stacked input:focus,
+.series-step-card .series-stacked textarea:focus{outline:none!important;border-bottom:2px solid #1767b1!important;box-shadow:none!important}
+.series-card-toggle-text{display:grid;gap:2px;min-width:0}
+.series-card-summary{font-size:14px;color:#45566a;font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.series-card-explainer{margin:0;font-size:14px;color:#45566a}
+.series-card-chevron{color:#607586;font-size:18px;flex:0 0 auto}
+.series-card-chevron.done{color:#1c9a5b}
+.series-card-locked{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#8aa0b1;flex:0 0 auto}
+.series-card-toggle:disabled{cursor:not-allowed;opacity:.7}
+.series-card-body{margin-top:16px}
+/* Step 1: header actions top-right, horizontal label + input rows */
+.series-step-head{display:flex;align-items:center;gap:12px}
+.series-step-head-toggle{flex:1;min-width:0}
+.series-step-head-actions{margin-top:0;margin-right:18px;flex:0 0 auto}
+.series-card-chevron-btn{background:none;border:none;box-shadow:none;padding:6px 2px;margin:0;cursor:pointer;color:#607586;font-size:14px;flex:0 0 auto}
+.series-card-chevron-btn:hover{background:none;box-shadow:none;transform:none}
+.series-field{display:flex;gap:14px;align-items:center;margin-bottom:16px}
+.series-field:last-child{margin-bottom:0}
+.series-field-split{display:flex;gap:20px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.series-field-split .series-field{margin-bottom:0;flex:1 1 200px;min-width:0}
+.series-field-split .series-field-price{flex:0 1 auto}
+.series-field-split .series-field-price .series-field-label{flex:0 0 auto}
+.series-field-top{align-items:start}
+.series-field-label{flex:0 0 110px;font-weight:700;font-size:14px;color:#172033}
+.series-field input,.series-field textarea{flex:1;min-width:0}
+.series-field .series-price-input{flex:0 1 150px}
+.series-card-actions{display:flex;gap:12px;margin-top:18px;flex-wrap:wrap}
+.series-review-summary{display:grid;gap:8px;margin-bottom:16px}
+.series-review-row{display:flex;justify-content:space-between;gap:12px;font-size:14px;color:#607586}
+.series-review-row strong{color:#172033;text-align:right}
+.series-review-list{margin:0 0 16px;padding:0;display:grid;gap:8px}
+.series-review-item{display:flex;align-items:center;gap:12px;background:#f4f8fb;border:1px solid #dce7ef;border-radius:12px;padding:10px 14px}
+.series-review-item.is-new{background:#eaf9ef;border-color:#1c9a5b}
+.series-review-num{display:grid;place-items:center;width:26px;height:26px;flex:0 0 auto;border-radius:50%;background:#dbe7f1;color:#1767b1;font-weight:800;font-size:13px}
+.series-review-item.is-new .series-review-num{background:#1c9a5b;color:#fff}
+.series-review-info{display:grid;gap:2px;flex:1;min-width:0}
+.series-review-info strong{font-size:14px;color:#172033;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.series-review-info small{color:#607586}
+.series-review-new{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#1c9a5b;flex:0 0 auto}
+.series-review-list small{color:#607586}
+
+/* Guided series workflow: details → tests → publish */
+/* Guided series workflow: progress line with three circles */
+.series-steps{display:flex;list-style:none;margin:8px 0 24px;padding:0}
+.series-step{flex:1 1 0;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative;text-align:center;color:#607586;min-width:0}
+.series-step::before{content:'';position:absolute;top:19px;left:calc(-50% + 21px);right:calc(50% + 21px);height:2px;background:#dce7ef}
+.series-step:first-child::before{display:none}
+.series-step.done::before,.series-step.active::before{background:#1c9a5b}
+.series-step-dot{display:grid;place-items:center;width:38px;height:38px;border-radius:50%;background:#fff;border:2px solid #dce7ef;color:#8aa0b1;font-weight:800;font-size:15px;z-index:1}
+.series-step.active .series-step-dot{border-color:#1767b1;color:#1767b1;box-shadow:none}
+.series-step.done .series-step-dot{background:#1c9a5b;border-color:#1c9a5b;color:#fff}
+.series-step-text{display:grid;gap:2px}
+.series-step-text strong{font-size:13px;color:#172033}
+.series-step-text small{font-size:12px}
+.series-step.active .series-step-text strong{color:#1767b1}
 
 /* Shared between the form's cover preview and the list card's cover */
 .status-dot{position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;background:#fff;border:2px solid #cbd8e2;box-shadow:0 2px 6px -2px #16466b40}
@@ -32,8 +146,10 @@
 .test-series-card{padding:0;overflow:hidden;display:flex;flex-direction:column;cursor:pointer;transition:box-shadow .15s ease,transform .15s ease}
 .test-series-card:hover{box-shadow:0 14px 28px -10px #16466b40;transform:translateY(-2px)}
 .fab{position:fixed;right:34px;bottom:34px;width:56px;height:56px;padding:0;border-radius:50%;display:grid;place-items:center;font-size:28px;line-height:1;box-shadow:0 10px 24px -6px #1767b180;z-index:10}
-.test-series-cover-card{display:grid;place-items:center;height:110px;color:#fff;font-weight:800;font-size:32px}
+.test-series-cover-card{display:grid;place-items:center;height:110px;color:#fff}
 .series-card-cover{position:relative}
+.series-cover-title{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden;text-align:center;padding:0 16px;font-weight:800;font-size:17px;line-height:1.25;text-shadow:0 2px 6px rgba(0,0,0,.2)}
+.test-series-cover-preview .series-cover-title{font-size:20px;-webkit-line-clamp:4;padding:0 20px}
 .series-card-cover .status-dot{top:10px;right:10px}
 .price-tag{position:absolute;right:10px;bottom:10px;font-size:12px;font-weight:800;letter-spacing:.02em;padding:5px 11px;border-radius:8px;border:1px solid rgba(255,255,255,.5);box-shadow:0 6px 14px -4px rgba(0,0,0,.4)}
 .price-tag.price-free{background:#1c9a5b;color:#fff}

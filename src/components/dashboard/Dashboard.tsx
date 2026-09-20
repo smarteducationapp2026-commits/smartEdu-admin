@@ -6,9 +6,7 @@ import type { AdminUser } from '../../core/types'
 import { Avatar } from '../shared/Avatar'
 import { Overview } from '../overview'
 import { Subjects } from '../subjects'
-import { Exams } from '../exams'
 import { Users } from '../users'
-import { Courses } from '../courses'
 import { Tests } from '../tests'
 import { Profile } from '../profile'
 
@@ -20,7 +18,7 @@ export function Dashboard({
   role: 'admin' | 'superAdmin'
 }) {
   const [section, setSection] = useState<
-    'overview' | 'subjects' | 'exams' | 'users' | 'courses' | 'tests' | 'profile'
+    'overview' | 'subjects' | 'users' | 'tests' | 'profile'
   >('overview')
   const [profileOpen, setProfileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -36,7 +34,6 @@ export function Dashboard({
               ['overview', '⌂', 'Overview'],
               ...(role === 'superAdmin' ? [['users', '♙', 'Manage Users'] as const] : []),
               ['subjects', '▦', 'Subjects'] as const,
-              ['exams', '▤', 'Exams'] as const,
               ['tests', '✓', 'Test Series'],
             ] as const
           ).map(([key, icon, label]) => (
@@ -99,9 +96,7 @@ export function Dashboard({
         </div>
         {section === 'overview' && <Overview />}
         {section === 'subjects' && <Subjects role={role} />}
-        {section === 'exams' && <Exams />}
         {section === 'users' && role === 'superAdmin' && <Users />}
-        {section === 'courses' && <Courses />}
         {section === 'tests' && <Tests role={role} />}
         {section === 'profile' && (
           <Profile

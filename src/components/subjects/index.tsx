@@ -1,8 +1,7 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import './subjects.css'
 import type { Exam, ExamQuestion, Subject } from '../../core/types'
 import {
-  createExam,
   createSubjectItem,
   deleteSubjectTree,
   listExamsForTopic,
@@ -10,40 +9,29 @@ import {
   publishExam,
   updateExamQuestions,
 } from '../../services/subjects'
-import { BackHeading } from '../shared/BackHeading'
-import { IconButton } from '../shared/IconButton'
-import { QuestionCard } from '../shared/QuestionCard'
+import { ConfirmDialog } from '../shared/ConfirmDialog'
+import { ExamCreator } from '../shared/ExamCreator'
+import { ExamDetails } from '../shared/ExamDetails'
 import { StatusPill } from '../shared/StatusPill'
-import { parseExamQuestionsCsv } from '../shared/examQuestionCsv'
 
 export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
   const [items, setItems] = useState<Subject[]>([])
+  const [pathIds, setPathIds] = useState<string[]>([])
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [status, setStatus] = useState<'active' | 'inactive'>('active')
   const [includeMixed, setIncludeMixed] = useState(false)
-  const [topicParentId, setTopicParentId] = useState('')
-  const [examName, setExamName] = useState('')
-  const [examDescription, setExamDescription] = useState('')
-  const [timerEnabled, setTimerEnabled] = useState(false)
-  const [timerType, setTimerType] = useState<'perQuestion' | 'overall'>('perQuestion')
-  const [timerMinutes, setTimerMinutes] = useState('1')
-  const [examFile, setExamFile] = useState<File | null>(null)
-  const [dragActive, setDragActive] = useState(false)
-  const [examQuestions, setExamQuestions] = useState<ExamQuestion[]>([])
-  const [examStep, setExamStep] = useState<'upload' | 'review'>('upload')
-  const [actionOpen, setActionOpen] = useState(false)
-  const [selectedItemId, setSelectedItemId] = useState('')
-  const [viewItemId, setViewItemId] = useState('')
-  const [createView, setCreateView] = useState<'subject' | 'topic' | 'exam' | null>(null)
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set())
+  const [createView, setCreateView] = useState<'item' | 'exam' | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [selectedExamIds, setSelectedExamIds] = useState<Set<string>>(new Set())
+  const [confirmingBulkDelete, setConfirmingBulkDelete] = useState(false)
+  const [gearOpen, setGearOpen] = useState(false)
   const [message, setMessage] = useState('')
   const [topicExams, setTopicExams] = useState<Exam[]>([])
   const [topicExamsLoading, setTopicExamsLoading] = useState(false)
   const [reviewingExam, setReviewingExam] = useState<Exam | null>(null)
-  const [editingIndex, setEditingIndex] = useState<number | null>(null)
-  const [editDraft, setEditDraft] = useState<ExamQuestion | null>(null)
   const canEdit = role === 'superAdmin'
+
   const load = async () => {
     setItems(await listSubjects())
   }
@@ -52,152 +40,119 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
       setMessage(error instanceof Error ? error.message : 'Unable to load subjects.'),
     )
   }, [])
+
+  const currentFolderId = pathIds[pathIds.length - 1] || null
+  const currentItem = items.find((item) => item.id === currentFolderId)
+  // Full folder path for labels (e.g. "Science › Physics › Mechanics"),
+  // matching the breadcrumb above.
+  const currentPathLabel = pathIds
+    .map((id) => items.find((item) => item.id === id)?.name)
+    .filter((name): name is string => Boolean(name))
+    .join(' › ')
+  // Any opened folder (subject, topic, or subtopic) can hold exams alongside
+  // its child folders — only the root "Subjects" listing (nothing opened) can't.
+  const canCreateExamHere = currentFolderId !== null
+  const childItemType: 'subject' | 'topic' | 'subtopic' | null =
+    currentFolderId === null
+      ? 'subject'
+      : currentItem?.type === 'subject'
+        ? 'topic'
+        : currentItem?.type === 'topic'
+          ? 'subtopic'
+          : null
+  const childItemLabel = childItemType || 'item'
+
   useEffect(() => {
-    const viewed = items.find((item) => item.id === viewItemId)
-    if (!viewed || (viewed.type !== 'topic' && viewed.type !== 'subtopic')) {
+    if (!canCreateExamHere || !currentFolderId) {
       setTopicExams([])
       return
     }
     setTopicExamsLoading(true)
-    listExamsForTopic(viewItemId)
+    listExamsForTopic(currentFolderId)
       .then(setTopicExams)
       .catch(() => setMessage('Unable to load exams for this topic.'))
       .finally(() => setTopicExamsLoading(false))
-  }, [viewItemId, items])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentFolderId, items])
+
   useEffect(() => {
-    setReviewingExam(null)
-    cancelEditQuestion()
-  }, [viewItemId])
+    if (currentFolderId && items.length > 0 && !items.some((item) => item.id === currentFolderId)) {
+      setPathIds((current) => current.slice(0, -1))
+    }
+  }, [items, currentFolderId])
+
+  useEffect(() => {
+    setSelectedIds(new Set())
+    setSelectedExamIds(new Set())
+  }, [currentFolderId])
+
+  function toggleSelectedExam(id: string) {
+    setSelectedExamIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  function toggleSelected(id: string) {
+    setSelectedIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
   const childrenOf = (id: string | null) =>
     items
       .filter((item) => (item.parentId || null) === id && (id !== null || item.type !== 'mixed'))
       .sort((a, b) => (a.order || 0) - (b.order || 0))
-  async function createItem(event: FormEvent) {
-    event.preventDefault()
-    if (!canEdit || !name.trim()) return
-    try {
-      await createSubjectItem({
-        name,
-        description,
-        parentId: null,
-        type: 'subject',
-        status,
-        order: childrenOf(null).length,
-        includeMixed,
-      })
-      resetCreateForm()
-      setMessage('Subject created.')
-      await load()
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to create subject item.')
-    }
+  const children = childrenOf(currentFolderId)
+
+  function openFolder(id: string) {
+    setCreateView(null)
+    setReviewingExam(null)
+    setPathIds((current) => [...current, id])
+  }
+  function goToBreadcrumb(index: number) {
+    setPathIds((current) => current.slice(0, index + 1))
   }
   function resetCreateForm() {
     setName('')
     setDescription('')
     setStatus('active')
     setIncludeMixed(false)
-    setTopicParentId('')
-    setExamName('')
-    setExamDescription('')
-    setTimerEnabled(false)
-    setTimerType('perQuestion')
-    setTimerMinutes('1')
-    setExamFile(null)
-    setExamQuestions([])
-    setExamStep('upload')
-    setSelectedItemId('')
-    setViewItemId('')
     setCreateView(null)
   }
-  function openCreateView(view: 'subject' | 'topic' | 'exam', selectedParentId = '') {
+  function openCreateView(view: 'item' | 'exam') {
     resetCreateForm()
-    setTopicParentId(selectedParentId)
     setCreateView(view)
-    setActionOpen(false)
   }
-  function finishExamCreation(topicId: string) {
-    setName('')
-    setDescription('')
-    setStatus('active')
-    setIncludeMixed(false)
-    setTopicParentId('')
-    setExamName('')
-    setExamDescription('')
-    setTimerEnabled(false)
-    setTimerType('perQuestion')
-    setTimerMinutes('1')
-    setExamFile(null)
-    setExamQuestions([])
-    setExamStep('upload')
-    setSelectedItemId('')
-    setCreateView(null)
-    setViewItemId(topicId)
-  }
-  async function createTopic(event: FormEvent) {
+
+  async function createChildItem(event: FormEvent) {
     event.preventDefault()
-    if (!canEdit || !topicParentId || !name.trim()) return
-    const parent = items.find((item) => item.id === topicParentId)
+    if (!canEdit || !name.trim() || !childItemType) return
     try {
       await createSubjectItem({
         name,
         description,
-        parentId: topicParentId,
-        type: parent?.type === 'topic' ? 'subtopic' : 'topic',
+        parentId: currentFolderId,
+        type: childItemType,
         status,
-        order: childrenOf(topicParentId).length,
+        order: children.length,
         includeMixed,
       })
       resetCreateForm()
-      setMessage('Topic created.')
+      setMessage(`${childItemLabel[0].toUpperCase()}${childItemLabel.slice(1)} created.`)
       await load()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to create topic.')
+      setMessage(error instanceof Error ? error.message : `Unable to create ${childItemLabel}.`)
     }
   }
-  function handleExamFile(file: File | null) {
-    setExamFile(file)
-    setExamQuestions([])
-    setExamStep('upload')
-  }
-  async function reviewExamQuestions() {
-    if (!examFile) return
-    try {
-      const text = await examFile.text()
-      const result = parseExamQuestionsCsv(text)
-      if (!result.ok) {
-        setExamQuestions([])
-        setExamStep('upload')
-        setMessage(result.error)
-        return
-      }
-      setExamQuestions(result.questions)
-      setExamStep('review')
-      setMessage('')
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to review questions CSV.')
-    }
-  }
-  async function submitExam() {
-    if (!canEdit || !examName.trim() || !topicParentId || examQuestions.length === 0) return
-    const createdTopicId = topicParentId
-    const timerSeconds = timerEnabled ? Math.max(1, Number(timerMinutes) || 1) * 60 : null
-    try {
-      await createExam({
-        name: examName,
-        description: examDescription,
-        topicId: topicParentId,
-        questions: examQuestions,
-        timerEnabled,
-        timerType: timerEnabled ? timerType : null,
-        timerSeconds,
-      })
-      finishExamCreation(createdTopicId)
-      setMessage('Exam created and published.')
-      await load()
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to submit exam.')
-    }
+  async function handleExamCreated() {
+    resetCreateForm()
+    setMessage('Exam saved as a draft.')
+    await load()
   }
   async function publishTopicExam(examId: string) {
     if (!canEdit) return
@@ -231,484 +186,249 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
       setMessage(error instanceof Error ? error.message : 'Unable to update question.')
     }
   }
-  function startEditQuestion(index: number, question: ExamQuestion) {
-    setEditingIndex(index)
-    setEditDraft({ ...question })
-  }
-  function cancelEditQuestion() {
-    setEditingIndex(null)
-    setEditDraft(null)
-  }
-  function renderQuestionCards(
-    questions: ExamQuestion[],
-    onSave: (index: number, updated: ExamQuestion) => void,
-  ) {
-    return (
-      <div className="question-cards">
-        {questions.map((question, index) => {
-          if (editingIndex === index && editDraft)
-            return (
-              <div className="question-card editing" key={index}>
-                <p className="question-index">Question {index + 1}</p>
-                <div className="form">
-                  <label>
-                    Question
-                    <textarea
-                      value={editDraft.question}
-                      onChange={(event) =>
-                        setEditDraft({ ...editDraft, question: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Option A
-                    <input
-                      value={editDraft.optionA}
-                      onChange={(event) =>
-                        setEditDraft({ ...editDraft, optionA: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Option B
-                    <input
-                      value={editDraft.optionB}
-                      onChange={(event) =>
-                        setEditDraft({ ...editDraft, optionB: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Option C
-                    <input
-                      value={editDraft.optionC}
-                      onChange={(event) =>
-                        setEditDraft({ ...editDraft, optionC: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Option D
-                    <input
-                      value={editDraft.optionD}
-                      onChange={(event) =>
-                        setEditDraft({ ...editDraft, optionD: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Correct answer
-                    <select
-                      value={editDraft.correctAnswer}
-                      onChange={(event) =>
-                        setEditDraft({
-                          ...editDraft,
-                          correctAnswer: event.target.value as ExamQuestion['correctAnswer'],
-                        })
-                      }
-                    >
-                      <option value="A">A</option>
-                      <option value="B">B</option>
-                      <option value="C">C</option>
-                      <option value="D">D</option>
-                    </select>
-                  </label>
-                  <label>
-                    Explanation
-                    <textarea
-                      value={editDraft.explanation || ''}
-                      onChange={(event) =>
-                        setEditDraft({ ...editDraft, explanation: event.target.value })
-                      }
-                    />
-                  </label>
-                  <div className="row">
-                    <button
-                      className="back-link"
-                      type="button"
-                      onClick={cancelEditQuestion}
-                      aria-label="Cancel"
-                      title="Cancel"
-                    >
-                      ←
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        onSave(index, editDraft)
-                        cancelEditQuestion()
-                      }}
-                    >
-                      Save
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )
-          return (
-            <QuestionCard
-              key={index}
-              question={question}
-              index={index}
-              onEdit={() => startEditQuestion(index, question)}
-            />
-          )
-        })}
-      </div>
-    )
-  }
-  async function deleteItem(item: Subject) {
-    if (!canEdit) return
+  async function confirmBulkDelete() {
+    if (!canEdit || selectedIds.size === 0) return
     try {
-      await deleteSubjectTree(items, item.id)
-      setSelectedItemId('')
-      setViewItemId('')
-      setMessage('Subject item deleted.')
+      for (const id of selectedIds) {
+        await deleteSubjectTree(items, id)
+      }
+      setConfirmingBulkDelete(false)
+      setSelectedIds(new Set())
+      setMessage('Deleted.')
       await load()
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to delete subject item.')
+      setMessage(error instanceof Error ? error.message : 'Unable to delete.')
+      setConfirmingBulkDelete(false)
     }
   }
-  function renderTree(parent: string | null, depth = 0): ReactNode {
-    const siblings = childrenOf(parent)
-    return siblings.map((item) => {
-      const childCount = childrenOf(item.id).length
-      const hasChildren = childCount > 0
-      const expanded = expandedIds.has(item.id)
-      return (
-        <div key={item.id} className="subject-tree-item" style={{ marginLeft: depth * 20 }}>
-          <div
-            className={`organizer-item ${selectedItemId === item.id ? 'selected-subject' : ''}`}
-            onClick={(event) => {
-              event.stopPropagation()
-              setSelectedItemId(item.id)
-            }}
-          >
-            <span className="subject-name">
-              {hasChildren ? (
-                <button
-                  className="caret-button"
-                  title={expanded ? 'Collapse' : 'Expand'}
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setExpandedIds((current) => {
-                      const next = new Set(current)
-                      if (next.has(item.id)) next.delete(item.id)
-                      else next.add(item.id)
-                      return next
-                    })
-                  }}
-                >
-                  {expanded ? '⌄' : '›'}
-                </button>
-              ) : (
-                <span className="caret-placeholder" />
-              )}
-              <span
-                className={`tree-icon ${hasChildren ? `folder${expanded ? ' open' : ''}` : 'leaf'}`}
-              />
-              {item.name}
-              {hasChildren && <span className="tree-count">{childCount}</span>}
-            </span>
-          </div>
-          {expanded && renderTree(item.id, depth + 1)}
-        </div>
-      )
-    })
-  }
-  const viewedItem = items.find((item) => item.id === viewItemId)
-  const viewedParent = viewedItem?.parentId
-    ? items.find((item) => item.id === viewedItem.parentId)
-    : undefined
-  const showTree = !createView && !viewItemId
+
+  const showGrid = !createView && !reviewingExam
   return (
-    <div className="stack" onClick={() => setActionOpen(false)}>
+    <div className="stack" onClick={() => setGearOpen(false)}>
       <div className="card">
-        {showTree && (
-          <div className="subject-heading">
-            <div>
-              <h3>
-                <span className="heading-icon">▦</span>Subjects
-              </h3>
-              <p>Create and organize subjects, topics, and exams.</p>
-            </div>
-            <div className="subject-header-actions" onClick={(event) => event.stopPropagation()}>
-              {canEdit && <button onClick={() => openCreateView('subject')}>+ New subject</button>}
-              <div className="subject-action-menu">
+        {confirmingBulkDelete && (
+          <ConfirmDialog
+            title={`Delete ${selectedIds.size} item${selectedIds.size === 1 ? '' : 's'}?`}
+            danger
+            confirmLabel="Delete"
+            message="This deletes the selected folders and everything inside them (topics and subtopics). This can't be undone."
+            onCancel={() => setConfirmingBulkDelete(false)}
+            onConfirm={() => void confirmBulkDelete()}
+          />
+        )}
+
+        {showGrid && (
+          <>
+            {!canEdit && (
+              <p className="notice">
+                Admin access is read-only. Only Super Admins can create subject items.
+              </p>
+            )}
+            <div className="subject-top-row">
+              <div className="breadcrumb">
                 <button
-                  className="secondary more-button"
-                  onClick={() => setActionOpen((open) => !open)}
-                  aria-expanded={actionOpen}
-                  aria-label="More actions"
-                  title="More actions"
+                  className="breadcrumb-item"
+                  disabled={pathIds.length === 0}
+                  onClick={() => setPathIds([])}
                 >
-                  ⋯
+                  Subjects
                 </button>
-                {actionOpen && (
-                  <div className="dropdown">
-                    {canEdit && (
-                      <button
-                        disabled={!selectedItemId}
-                        onClick={() => openCreateView('topic', selectedItemId)}
-                      >
-                        Create topic
-                      </button>
-                    )}
+                {pathIds.map((id, index) => {
+                  const item = items.find((candidate) => candidate.id === id)
+                  if (!item) return null
+                  const isLast = index === pathIds.length - 1
+                  return (
+                    <span key={id} className="breadcrumb-segment">
+                      <span className="breadcrumb-sep">/</span>
+                      {isLast ? (
+                        <span className="breadcrumb-current">{item.name}</span>
+                      ) : (
+                        <button className="breadcrumb-item" onClick={() => goToBreadcrumb(index)}>
+                          {item.name}
+                        </button>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+              {canEdit && (
+                <div className="subject-top-actions">
+                  <div className="subject-menu">
                     <button
-                      disabled={!selectedItemId}
+                      type="button"
+                      className="secondary gear-button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        setGearOpen((open) => !open)
+                      }}
+                      aria-expanded={gearOpen}
+                      aria-label="More actions"
+                      title="More actions"
+                    >
+                      ⚙
+                    </button>
+                    {gearOpen && (
+                      <div className="dropdown" onClick={(event) => event.stopPropagation()}>
+                        <button
+                          disabled={!canCreateExamHere || selectedIds.size > 0 || selectedExamIds.size > 0}
+                          onClick={() => {
+                            setGearOpen(false)
+                            openCreateView('exam')
+                          }}
+                        >
+                          + Create exam
+                        </button>
+                        <button
+                          disabled={selectedExamIds.size !== 1}
+                          onClick={() => {
+                            const exam = topicExams.find((candidate) =>
+                              selectedExamIds.has(candidate.id),
+                            )
+                            setGearOpen(false)
+                            setSelectedExamIds(new Set())
+                            if (exam) {
+                              setReviewingExam(exam)
+                            }
+                          }}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          disabled={selectedIds.size === 0}
+                          onClick={() => {
+                            setGearOpen(false)
+                            setConfirmingBulkDelete(true)
+                          }}
+                        >
+                          Delete{selectedIds.size > 0 ? ` (${selectedIds.size})` : ''}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {childItemType && (
+                    <button onClick={() => openCreateView('item')}>+ New</button>
+                  )}
+                </div>
+              )}
+            </div>
+            {currentItem?.description && <p className="folder-description">{currentItem.description}</p>}
+            <div className="folder-grid">
+              {children.map((item) => {
+                const count = childrenOf(item.id).length
+                const selected = selectedIds.has(item.id)
+                return (
+                  <div
+                    key={item.id}
+                    className={`folder-card ${selected ? 'selected' : ''}`}
+                    onClick={() => (selectedIds.size > 0 ? toggleSelected(item.id) : openFolder(item.id))}
+                  >
+                    {canEdit && (
+                      <label
+                        className="folder-card-checkbox"
+                        onClick={(event) => event.stopPropagation()}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleSelected(item.id)}
+                          aria-label={`Select ${item.name}`}
+                        />
+                      </label>
+                    )}
+                    <span className="folder-card-icon" />
+                    <p className="folder-card-name">{item.name}</p>
+                    <span className="folder-card-count">
+                      {count} item{count === 1 ? '' : 's'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            {children.length === 0 && !canCreateExamHere && (
+              <p className="folder-grid-empty">This folder is empty.</p>
+            )}
+            {canCreateExamHere && (
+              <div className="exam-list">
+                {topicExamsLoading && <p className="folder-grid-empty">Loading exams…</p>}
+                {!topicExamsLoading && topicExams.length === 0 && (
+                  <p className="folder-grid-empty">
+                    {children.length === 0 ? 'This folder is empty.' : 'No exams here yet.'}
+                  </p>
+                )}
+                {topicExams.map((exam) => {
+                  const examSelected = selectedExamIds.has(exam.id)
+                  return (
+                    <div
+                      key={exam.id}
+                      className={`exam-list-row ${examSelected ? 'selected' : ''}`}
                       onClick={() => {
-                        setViewItemId(selectedItemId)
-                        setCreateView(null)
-                        setActionOpen(false)
+                        if (selectedExamIds.size > 0) {
+                          toggleSelectedExam(exam.id)
+                          return
+                        }
+                        setReviewingExam(exam)
                       }}
                     >
-                      View
-                    </button>
-                    {canEdit && (
-                      <button
-                        disabled={!selectedItemId}
-                        className="delete-action"
-                        onClick={() => {
-                          const item = items.find((candidate) => candidate.id === selectedItemId)
-                          setActionOpen(false)
-                          if (item) void deleteItem(item)
-                        }}
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </div>
-                )}
+                      {canEdit && (
+                        <label
+                          className="exam-list-checkbox"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={examSelected}
+                            onChange={() => toggleSelectedExam(exam.id)}
+                            aria-label={`Select ${exam.name}`}
+                          />
+                        </label>
+                      )}
+                      <span className="exam-list-name">{exam.name}</span>
+                      <span className="exam-list-meta">
+                        {exam.questions?.length ?? 0} question{(exam.questions?.length ?? 0) === 1 ? '' : 's'}
+                      </span>
+                      <StatusPill status={exam.status} />
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          </div>
-        )}
-        {!canEdit && showTree && (
-          <p className="notice">
-            Admin access is read-only. Only Super Admins can create subject items.
-          </p>
-        )}
-
-        {createView === 'subject' && (
-          <form className="form create-metadata-form" onSubmit={createItem}>
-            <div className="form-header">
-              <h3>Create subject</h3>
-              <p>
-                Add a new top-level subject. Topics and subtopics are added under it afterwards.
-              </p>
-            </div>
-            <label>
-              Name
-              <input required value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label>
-              Description
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={includeMixed}
-                onChange={(event) => setIncludeMixed(event.target.checked)}
-              />
-              Create Mixed section as a subtopic
-            </label>
-            <div className="row">
-              <button
-                className="back-link"
-                type="button"
-                onClick={resetCreateForm}
-                aria-label="Cancel"
-                title="Cancel"
-              >
-                ←
-              </button>
-              <button type="submit">Create subject</button>
-            </div>
-            {message && <p className="notice">{message}</p>}
-          </form>
-        )}
-
-        {createView === 'topic' && (
-          <form className="form create-metadata-form" onSubmit={createTopic}>
-            <div className="form-header">
-              <h3>Create topic</h3>
-              <p>
-                Add a topic under{' '}
-                <strong>
-                  {items.find((item) => item.id === topicParentId)?.name || 'this subject'}
-                </strong>
-                .
-              </p>
-            </div>
-            <label>
-              Name
-              <input required value={name} onChange={(event) => setName(event.target.value)} />
-            </label>
-            <label>
-              Description
-              <textarea
-                value={description}
-                onChange={(event) => setDescription(event.target.value)}
-              />
-            </label>
-            <label className="checkbox">
-              <input
-                type="checkbox"
-                checked={includeMixed}
-                onChange={(event) => setIncludeMixed(event.target.checked)}
-              />
-              Create Mixed section as a subtopic
-            </label>
-            <div className="row">
-              <button
-                className="back-link"
-                type="button"
-                onClick={resetCreateForm}
-                aria-label="Back"
-                title="Back"
-              >
-                ←
-              </button>
-              <button type="submit">Create topic</button>
-            </div>
-            {message && <p className="notice">{message}</p>}
-          </form>
-        )}
-
-        {createView === 'exam' && examStep === 'upload' && (
-          <div className="form create-metadata-form">
-            <div className="form-header">
-              <h3>Create exam</h3>
-              <p>
-                Upload a questions CSV for{' '}
-                <strong>
-                  {items.find((item) => item.id === topicParentId)?.name || 'this topic'}
-                </strong>
-                , then review it.
-              </p>
-            </div>
-            <label>
-              Exam Name
-              <input
-                required
-                value={examName}
-                onChange={(event) => setExamName(event.target.value)}
-              />
-            </label>
-            <label>
-              Description
-              <textarea
-                value={examDescription}
-                onChange={(event) => setExamDescription(event.target.value)}
-              />
-            </label>
-            <div className="form-header">
-              <h3>Timer</h3>
-            </div>
-            <div className="row">
-              <label className="checkbox">
-                <input
-                  type="radio"
-                  name="timerEnabled"
-                  checked={!timerEnabled}
-                  onChange={() => setTimerEnabled(false)}
-                />{' '}
-                No timer
-              </label>
-              <label className="checkbox">
-                <input
-                  type="radio"
-                  name="timerEnabled"
-                  checked={timerEnabled}
-                  onChange={() => setTimerEnabled(true)}
-                />{' '}
-                Timer
-              </label>
-            </div>
-            {timerEnabled && (
-              <>
-                <div className="row">
-                  <label className="checkbox">
-                    <input
-                      type="radio"
-                      name="timerType"
-                      checked={timerType === 'perQuestion'}
-                      onChange={() => setTimerType('perQuestion')}
-                    />{' '}
-                    Per question
-                  </label>
-                  <label className="checkbox">
-                    <input
-                      type="radio"
-                      name="timerType"
-                      checked={timerType === 'overall'}
-                      onChange={() => setTimerType('overall')}
-                    />{' '}
-                    Overall exam
-                  </label>
-                </div>
-                <label>
-                  {timerType === 'perQuestion' ? 'Minutes per question' : 'Total exam minutes'}
-                  <input
-                    type="number"
-                    min="1"
-                    value={timerMinutes}
-                    onChange={(event) => setTimerMinutes(event.target.value)}
-                  />
-                </label>
-              </>
             )}
-            <div className="csv-upload-wrap">
-              <label
-                className={`csv-dropzone ${dragActive ? 'drag-active' : ''} ${examFile ? 'has-file' : ''}`}
-                onDragOver={(event) => {
-                  event.preventDefault()
-                  setDragActive(true)
-                }}
-                onDragLeave={() => setDragActive(false)}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  setDragActive(false)
-                  const file = event.dataTransfer.files?.[0]
-                  if (file) handleExamFile(file)
-                }}
-              >
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={(event) => handleExamFile(event.target.files?.[0] || null)}
-                />
-                <span className="csv-icon">↑</span>
-                {examFile ? (
-                  <span className="csv-filename">{examFile.name}</span>
+            {message && <p className="notice">{message}</p>}
+          </>
+        )}
+
+        {createView === 'item' && (
+          <form className="form create-metadata-form" onSubmit={createChildItem}>
+            <div className="form-header">
+              <h3>Create {childItemLabel}</h3>
+              <p>
+                {childItemType === 'subject' ? (
+                  'Add a new top-level subject. Topics and subtopics are added under it afterwards.'
                 ) : (
                   <>
-                    <span className="csv-title">Click to upload or drag & drop</span>
-                    <span className="csv-hint">.csv file with your exam questions</span>
+                    Add a {childItemLabel} under <strong>{currentItem?.name}</strong>.
                   </>
                 )}
-              </label>
-              {examFile && (
-                <button
-                  type="button"
-                  className="small-button secondary"
-                  onClick={() => handleExamFile(null)}
-                >
-                  Remove file
-                </button>
-              )}
-              <details className="csv-columns-hint">
-                <summary>Expected columns</summary>
-                <p>
-                  question, optionA, optionB, optionC, optionD, correctAnswer (A/B/C/D), explanation
-                  (optional)
-                </p>
-              </details>
+              </p>
             </div>
+            <label>
+              Name
+              <input required value={name} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <label>
+              Description
+              <textarea
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
+            </label>
+            <label className="checkbox">
+              <input
+                type="checkbox"
+                checked={includeMixed}
+                onChange={(event) => setIncludeMixed(event.target.checked)}
+              />
+              Create Mixed section as a subtopic
+            </label>
             <div className="row">
               <button
                 className="back-link"
@@ -719,145 +439,36 @@ export function Subjects({ role }: { role: 'admin' | 'superAdmin' }) {
               >
                 ←
               </button>
-              <button
-                type="button"
-                onClick={() => void reviewExamQuestions()}
-                disabled={!examName.trim() || !examFile}
-              >
-                Review
-              </button>
+              <button type="submit">Create {childItemLabel}</button>
             </div>
             {message && <p className="notice">{message}</p>}
-          </div>
+          </form>
         )}
 
-        {createView === 'exam' && examStep === 'review' && (
-          <div className="exam-review">
-            <div className="form-header">
-              <h3>Review questions</h3>
-              <p>
-                {examQuestions.length} question{examQuestions.length === 1 ? '' : 's'} parsed from{' '}
-                <strong>{examFile?.name}</strong>. Check them, then submit.
-              </p>
-            </div>
-            {renderQuestionCards(examQuestions, (index, updated) =>
-              setExamQuestions((current) =>
-                current.map((question, questionIndex) =>
-                  questionIndex === index ? updated : question,
-                ),
-              ),
-            )}
-            <button className="medium-button" onClick={() => void submitExam()}>
-              Submit
-            </button>
-            {message && <p className="notice">{message}</p>}
-          </div>
+        {createView === 'exam' && currentFolderId && (
+          <ExamCreator
+            topicId={currentFolderId}
+            fixedLabel={currentPathLabel || 'this topic'}
+            statusMode="draft"
+            onCreated={() => void handleExamCreated()}
+            onCancel={() => setCreateView(null)}
+          />
         )}
 
-        {viewItemId && viewedItem && !createView && reviewingExam && (
-          <div className="metadata-view">
-            <BackHeading
-              title={reviewingExam.name}
-              onBack={() => {
-                setReviewingExam(null)
-                cancelEditQuestion()
-              }}
-              label="Back to exams"
-            />
-            <p className="description">{reviewingExam.description || 'No description provided.'}</p>
-            <div className="meta-chips">
-              <StatusPill status={reviewingExam.status} />
-              <span className="meta-chip">{reviewingExam.questions?.length ?? 0} questions</span>
-            </div>
-            {renderQuestionCards(
-              reviewingExam.questions || [],
-              (index, updated) => void updateExamQuestion(reviewingExam, index, updated),
-            )}
-            {canEdit && reviewingExam.status !== 'published' && (
-              <button
-                className="medium-button"
-                onClick={() => void publishTopicExam(reviewingExam.id)}
-              >
-                Publish
-              </button>
-            )}
-            {message && <p className="notice">{message}</p>}
-          </div>
-        )}
-
-        {viewItemId && viewedItem && !createView && !reviewingExam && (
-          <div className="metadata-view">
-            <BackHeading
-              title={viewedItem.name}
-              onBack={() => setViewItemId('')}
-              label="Back to subjects"
-            />
-            <p className="description">{viewedItem.description || 'No description provided.'}</p>
-            <div className="meta-chips">
-              <span className="meta-chip">{viewedItem.type || 'subject'}</span>
-              <span className="meta-chip">{viewedItem.status || 'active'}</span>
-              {viewedParent && <span className="meta-chip">Under {viewedParent.name}</span>}
-            </div>
-            {(viewedItem.type === 'topic' || viewedItem.type === 'subtopic') && (
-              <div className="exams-section">
-                <h3>Exams</h3>
-                {topicExamsLoading && <p>Loading exams…</p>}
-                {!topicExamsLoading && topicExams.length === 0 && (
-                  <p>No exams created for this topic yet.</p>
-                )}
-                {!topicExamsLoading && topicExams.length > 0 && (
-                  <div className="exam-tiles">
-                    {topicExams.map((exam) => (
-                      <div className="exam-tile" key={exam.id}>
-                        <div className="exam-tile-info">
-                          <p className="exam-tile-name">{exam.name}</p>
-                          <p className="exam-tile-meta">
-                            {exam.questions?.length ?? 0} questions ·{' '}
-                            <StatusPill status={exam.status} />
-                          </p>
-                        </div>
-                        <div className="exam-tile-actions">
-                          <IconButton
-                            icon="⟳"
-                            label="Review questions"
-                            onClick={() => {
-                              setReviewingExam(exam)
-                              cancelEditQuestion()
-                            }}
-                          />
-                          {canEdit && exam.status !== 'published' && (
-                            <button
-                              className="small-button"
-                              onClick={() => void publishTopicExam(exam.id)}
-                            >
-                              Publish
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-            {(viewedItem.type === 'topic' || viewedItem.type === 'subtopic') && (
-              <button
-                className="medium-button"
-                onClick={() => openCreateView('exam', viewedItem.id)}
-              >
-                + Create exam
-              </button>
-            )}
-            {message && <p className="notice">{message}</p>}
-          </div>
+        {reviewingExam && (
+          <ExamDetails
+            exam={reviewingExam}
+            backLabel="Back to folder"
+            canEdit={canEdit}
+            message={message}
+            onBack={() => setReviewingExam(null)}
+            onUpdateQuestion={(index, updated) =>
+              void updateExamQuestion(reviewingExam, index, updated)
+            }
+            onPublish={() => void publishTopicExam(reviewingExam.id)}
+          />
         )}
       </div>
-      {showTree && (
-        <div className="card subject-tree" onClick={() => setSelectedItemId('')}>
-          {renderTree(null)}
-          {childrenOf(null).length === 0 && <p>No subjects created yet.</p>}
-        </div>
-      )}
     </div>
   )
 }

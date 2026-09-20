@@ -19,7 +19,7 @@ export function SeriesCover({ title, className }: { title: string; className: st
   const [from, to] = coverGradient(title || '?')
   return (
     <div className={className} style={{ background: `linear-gradient(135deg, ${from}, ${to})` }}>
-      {(title || '?').charAt(0).toUpperCase()}
+      <span className="series-cover-title">{title.trim() || 'Untitled'}</span>
     </div>
   )
 }

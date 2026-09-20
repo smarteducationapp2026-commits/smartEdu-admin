@@ -38,7 +38,6 @@ export type WalletTransaction = {
 }
 
 export type InstituteRole = 'institute' | 'admin'
-export type Course = { id: string; title: string; offer?: string; active?: boolean }
 export type AcademicStatus = 'active' | 'inactive'
 export type Subject = { id: string; parentId?: string | null; name: string; code?: string; description?: string; type?: 'subject' | 'topic' | 'subtopic' | 'mixed'; status?: AcademicStatus; order?: number }
 export type ExamStatus = 'draft' | 'created' | 'published'
@@ -51,5 +50,5 @@ export type PublicExamQuestion = { question: string; optionA: string; optionB: s
 export type PublicExam = { id: string; name: string; topicId: string; questionCount: number; status: ExamStatus; questions: PublicExamQuestion[]; updatedAt?: { seconds?: number } } & ExamTimerFields
 export type TestSeriesStatus = 'draft' | 'published'
 export type PricingType = 'free' | 'paid'
-export type TestSeries = { id: string; title: string; description?: string; courseId: string; examIds: string[]; thumbnailUrl?: string; status: TestSeriesStatus; pricingType?: PricingType; price?: number; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number }; publishedAt?: { seconds?: number } }
+export type TestSeries = { id: string; title: string; description?: string; examIds: string[]; thumbnailUrl?: string; status: TestSeriesStatus; pricingType?: PricingType; price?: number; createdAt?: { seconds?: number }; updatedAt?: { seconds?: number }; publishedAt?: { seconds?: number } }
 export type AdminUser = Pick<User, 'email' | 'displayName' | 'photoURL'> & { uid: string }

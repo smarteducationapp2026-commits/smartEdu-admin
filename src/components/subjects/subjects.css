@@ -1,31 +1,40 @@
-.organizer-item{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;border:1px solid #e4edf2;border-radius:8px;background:#f8fbfd;min-height:38px;cursor:pointer}
-.organizer-item.selected-subject{border-color:#1767b1;background:#edf6ff;box-shadow:0 0 0 2px #bfe3f7}
-.subject-name{display:flex;align-items:center;gap:8px}
-.subject-tree{display:grid;gap:4px}
-.subject-tree-item{display:grid;gap:4px}
-.subject-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:18px}
-.subject-action-menu{position:relative}
-.subject-action-menu .dropdown{top:48px;min-width:180px}
-.dropdown button.delete-action{color:#b42318}
-.dropdown button.delete-action:hover{background:#fff0ee}
-.exams-section{margin:0 0 24px}
-.exams-section h3{margin:0 0 12px}
-.heading-icon{display:inline-grid;place-items:center;width:26px;height:26px;margin-right:8px;border-radius:8px;background:#edf6ff;color:#1767b1;font-size:14px;vertical-align:middle}
-.subject-header-actions{display:flex;gap:10px;align-items:center}
-.more-button{padding:9px 14px;font-size:20px;line-height:1;letter-spacing:1px}
-.tree-icon{flex:0 0 auto;width:18px;height:14px;position:relative;border-radius:0 4px 4px 4px;background:#bfe0fb}
-.tree-icon::before{content:'';position:absolute;top:-4px;left:0;width:9px;height:4px;background:inherit;border-radius:3px 3px 0 0}
-.tree-icon.open{background:#1767b1}
-.tree-icon.leaf{width:13px;height:16px;border-radius:2px;background:#eef5f9;border:1.5px solid #b9cddc}
-.tree-icon.leaf::before{content:none}
-.tree-count{margin-left:2px;font-size:11px;font-weight:700;color:#5b83a3;background:#eef5fb;padding:1px 8px;border-radius:999px}
-.caret-button{padding:4px 8px;background:transparent;color:#1767b1;font-size:20px;width:24px;line-height:1}
-.caret-placeholder{display:inline-block;width:24px}
 .meta-chips{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
-.exam-tiles{display:grid;gap:10px}
-.exam-tile{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 16px;border:1px solid #e4edf2;border-radius:12px;background:#f8fbfd}
-.exam-tile-name{margin:0;font-weight:700;color:#102b43}
-.exam-tile-meta{margin:4px 0 0;font-size:12px;color:#6b7d8c;display:flex;align-items:center;gap:6px}
-.exam-tile-actions{display:flex;gap:8px;align-items:center;flex:0 0 auto}
-.exam-tile-actions .icon-button{width:34px;height:34px;display:grid;place-items:center;background:#edf6ff;border-radius:9px;font-size:16px}
-.exam-tile-actions .icon-button:hover{background:#dceeff}
+
+.subject-top-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.subject-top-actions{display:flex;align-items:center;gap:10px}
+.subject-menu{position:relative}
+.secondary.gear-button{padding:9px 14px;font-size:24px;line-height:1;background:linear-gradient(135deg,#ffb703,#fb8500);color:#3a2200;border:none}
+.breadcrumb{display:flex;align-items:center;flex-wrap:wrap;gap:2px;margin-bottom:6px}
+.breadcrumb-segment{display:inline-flex;align-items:center}
+.breadcrumb-item{background:transparent;padding:4px 6px;border-radius:6px;color:#1767b1;font-weight:600;font-size:14px}
+.breadcrumb-item:hover:not(:disabled){background:#edf6ff}
+.breadcrumb-item:disabled{color:#102b43;cursor:default}
+.breadcrumb-current{padding:4px 6px;font-weight:700;color:#102b43;font-size:14px}
+.breadcrumb-sep{color:#9fb4c4;margin:0 2px}
+
+.folder-description{margin:0 0 16px;color:#6b7d8c;font-size:13px}
+
+.folder-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(min-width:1024px){.folder-grid{grid-template-columns:repeat(5,1fr)}}
+@media(min-width:1400px){.folder-grid{grid-template-columns:repeat(6,1fr)}}
+.folder-grid-empty{color:#6b7d8c;padding:20px 4px}
+
+.folder-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:22px 12px 16px;border:1px solid #e4edf2;border-radius:14px;background:#f8fbfd;cursor:pointer;text-align:center;transition:box-shadow .15s,border-color .15s}
+.folder-card:hover{border-color:#bfe3f7;box-shadow:0 6px 18px rgba(23,103,177,.12)}
+.folder-card.selected{border-color:#1767b1;background:#edf6ff;box-shadow:0 0 0 2px #bfe3f7}
+.folder-card-icon{width:52px;height:38px;position:relative;border-radius:3px 8px 8px 8px;background:linear-gradient(160deg,#6cc0f5,#1767b1)}
+.folder-card-icon::before{content:'';position:absolute;top:-8px;left:0;width:24px;height:8px;background:inherit;border-radius:4px 4px 0 0}
+.folder-card-name{margin:0;font-weight:700;color:#102b43;font-size:13px;word-break:break-word;max-width:100%}
+.folder-card-count{font-size:11px;font-weight:700;color:#5b83a3;background:#eef5fb;padding:2px 9px;border-radius:999px}
+.folder-card-checkbox{position:absolute;top:8px;left:8px;display:none;align-items:center;justify-content:center;width:22px;height:22px;cursor:pointer}
+.folder-card-checkbox input{width:16px;height:16px;margin:0;cursor:pointer}
+.folder-card:hover .folder-card-checkbox,.folder-card.selected .folder-card-checkbox{display:flex}
+
+.exam-list{margin-top:20px;border-top:1px solid #e4edf2}
+.exam-list-row{display:flex;align-items:center;gap:14px;padding:13px 10px;border-bottom:1px solid #e4edf2;cursor:pointer}
+.exam-list-row:hover{background:#f8fbfd}
+.exam-list-row.selected{background:#edf6ff}
+.exam-list-checkbox{display:flex;align-items:center;justify-content:center;width:18px;height:18px;cursor:pointer}
+.exam-list-checkbox input{width:16px;height:16px;margin:0;cursor:pointer}
+.exam-list-name{flex:1;font-weight:700;color:#102b43;font-size:13px}
+.exam-list-meta{font-size:12px;color:#6b7d8c}

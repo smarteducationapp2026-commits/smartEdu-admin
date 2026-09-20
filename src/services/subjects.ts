@@ -1,4 +1,4 @@
-import { collection, doc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
+import { collection, doc, getDoc, getDocs, query, serverTimestamp, where, writeBatch } from 'firebase/firestore'
 import { db } from '../core/firebase'
 import type { Exam, ExamQuestion, PublicExamQuestion, Subject } from '../core/types'
 
@@ -13,6 +13,21 @@ export async function listSubjects(): Promise<Subject[]> {
 export async function listExamsForTopic(topicId: string): Promise<Exam[]> {
   const snapshot = await getDocs(query(collection(db, 'exams'), where('topicId', '==', topicId)))
   return snapshot.docs.map((item) => ({ id: item.id, ...item.data() } as Exam))
+}
+
+export async function getExam(examId: string): Promise<Exam | null> {
+  const snapshot = await getDoc(doc(db, 'exams', examId))
+  if (!snapshot.exists()) return null
+  return { id: snapshot.id, ...snapshot.data() } as Exam
+}
+
+// Deletes the exam and its answer-free copy. Callers must first detach it
+// from any test series referencing it.
+export async function deleteExam(examId: string): Promise<void> {
+  const batch = writeBatch(db)
+  batch.delete(doc(db, 'exams', examId))
+  batch.delete(doc(db, 'examQuestions', examId))
+  await batch.commit()
 }
 
 export type CreateSubjectItemParams = { name: string; description: string; parentId: string | null; type: 'subject' | 'topic' | 'subtopic'; status: 'active' | 'inactive'; order: number; includeMixed: boolean }
@@ -30,14 +45,14 @@ export async function createSubjectItem(params: CreateSubjectItemParams): Promis
   await batch.commit()
 }
 
-export type CreateExamParams = { name: string; description: string; topicId: string; questions: ExamQuestion[]; timerEnabled: boolean; timerType: 'perQuestion' | 'overall' | null; timerSeconds: number | null }
+export type CreateExamParams = { name: string; description: string; topicId: string; questions: ExamQuestion[]; timerEnabled: boolean; timerType: 'perQuestion' | 'overall' | null; timerSeconds: number | null; status: 'draft' | 'published' }
 
 export async function createExam(params: CreateExamParams): Promise<string> {
   const timerFields = { timerEnabled: params.timerEnabled, timerType: params.timerType, timerSeconds: params.timerSeconds }
   const examRef = doc(collection(db, 'exams'))
   const batch = writeBatch(db)
-  batch.set(examRef, { name: params.name.trim(), description: params.description.trim(), topicId: params.topicId, questions: params.questions, status: 'published', ...timerFields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
-  batch.set(doc(db, 'examQuestions', examRef.id), { name: params.name.trim(), topicId: params.topicId, questionCount: params.questions.length, status: 'published', questions: stripAnswers(params.questions), ...timerFields, updatedAt: serverTimestamp() })
+  batch.set(examRef, { name: params.name.trim(), description: params.description.trim(), topicId: params.topicId, questions: params.questions, status: params.status, ...timerFields, createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+  batch.set(doc(db, 'examQuestions', examRef.id), { name: params.name.trim(), topicId: params.topicId, questionCount: params.questions.length, status: params.status, questions: stripAnswers(params.questions), ...timerFields, updatedAt: serverTimestamp() })
   await batch.commit()
   return examRef.id
 }

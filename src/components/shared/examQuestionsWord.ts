@@ -1,6 +1,7 @@
 import mammoth from 'mammoth'
 import type { ExamQuestion } from '../../core/types'
-import type { ParseResult } from './examQuestionCsv'
+
+export type ParseResult = { ok: true; questions: ExamQuestion[] } | { ok: false; error: string }
 
 // Expected layout: one Word table per question, each a label/value grid —
 //   Question | <question text>

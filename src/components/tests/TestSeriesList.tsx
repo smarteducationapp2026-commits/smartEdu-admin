@@ -1,25 +1,19 @@
-import type { Course, TestSeries } from '../../core/types'
+import type { TestSeries } from '../../core/types'
 import { SeriesCover } from './SeriesCover'
 
 export function TestSeriesList({
   canEdit,
   series,
-  courses,
   message,
   onCreate,
   onOpen,
 }: {
   canEdit: boolean
   series: TestSeries[]
-  courses: Course[]
   message: string
   onCreate: () => void
   onOpen: (item: TestSeries) => void
 }) {
-  function courseTitle(courseId: string) {
-    return courses.find((course) => course.id === courseId)?.title || '—'
-  }
-
   return (
     <div className="stack">
       {!canEdit && (
@@ -56,8 +50,7 @@ export function TestSeriesList({
                 <h3>{item.title}</h3>
               </div>
               <p className="test-series-card-meta">
-                {courseTitle(item.courseId)} · {item.examIds?.length ?? 0} test
-                {item.examIds?.length === 1 ? '' : 's'}
+                {item.examIds?.length ?? 0} test{item.examIds?.length === 1 ? '' : 's'}
               </p>
             </div>
           </div>

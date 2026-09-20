@@ -1,22 +1,23 @@
 import { collection, deleteDoc, doc, getDocs, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore'
 import { db } from '../core/firebase'
-import type { Course, ExamAnswerOption, ExamQuestion, PricingType, PublicExam, Subject, TestSeries } from '../core/types'
-import { createCourse } from './courses'
+import type { ExamAnswerOption, ExamQuestion, PricingType, PublicExam, Subject, TestSeries } from '../core/types'
 
-export type TestSeriesData = { series: TestSeries[]; courses: Course[]; exams: PublicExam[]; topicNames: Record<string, string> }
+export type TestSeriesData = { series: TestSeries[]; exams: PublicExam[]; topicNames: Record<string, string> }
 
 export async function loadTestSeriesData(): Promise<TestSeriesData> {
-  const [seriesSnap, courseSnap, examSnap, subjectSnap] = await Promise.all([
+  const [seriesSnap, examSnap, subjectSnap] = await Promise.all([
     getDocs(collection(db, 'testSeries')),
-    getDocs(collection(db, 'courses')),
     getDocs(collection(db, 'examQuestions')),
     getDocs(collection(db, 'subjects')),
   ])
   return {
     series: seriesSnap.docs.map((item) => ({ id: item.id, ...item.data() }) as TestSeries),
-    courses: courseSnap.docs.map((item) => ({ id: item.id, ...item.data() }) as Course),
-    exams: examSnap.docs.map((item) => ({ id: item.id, ...item.data() }) as PublicExam).filter((exam) => exam.status === 'published'),
-    topicNames: Object.fromEntries(subjectSnap.docs.map((item) => [item.id, (item.data() as Subject).name])),
+    // Drafts included: they can be attached to a series and stay hidden
+    // from students (mobile only renders published exams) until published.
+    exams: examSnap.docs.map((item) => ({ id: item.id, ...item.data() }) as PublicExam),
+    topicNames: Object.fromEntries(
+      subjectSnap.docs.map((item) => [item.id, (item.data() as Subject).name]),
+    ),
   }
 }
 
@@ -27,14 +28,32 @@ export async function publishTestSeries(seriesId: string): Promise<void> {
   await updateDoc(doc(db, 'testSeries', seriesId), { status: 'published', publishedAt: serverTimestamp(), updatedAt: serverTimestamp() })
 }
 
-export type SaveTestSeriesFields = { title: string; description: string; courseId: string; examIds: string[]; status: 'draft' | 'published'; pricingType: PricingType; price: number }
+// Cascade: every draft test in the series goes live with it, so students
+// always see the full series. Both the answer-key copy and the public copy
+// are flipped together (same pairing as publishExam in subjects).
+export async function publishExams(examIds: string[]): Promise<void> {
+  if (examIds.length === 0) return
+  let batch = writeBatch(db)
+  let opCount = 0
+  const flush = async () => { if (opCount > 0) { await batch.commit(); batch = writeBatch(db); opCount = 0 } }
+  for (const examId of examIds) {
+    if (opCount >= 400) await flush()
+    batch.update(doc(db, 'exams', examId), { status: 'published', updatedAt: serverTimestamp() })
+    opCount++
+    if (opCount >= 400) await flush()
+    batch.update(doc(db, 'examQuestions', examId), { status: 'published', updatedAt: serverTimestamp() })
+    opCount++
+  }
+  await flush()
+}
+
+export type SaveTestSeriesFields = { title: string; description: string; examIds: string[]; status: 'draft' | 'published'; pricingType: PricingType; price: number }
 
 export async function saveTestSeries(seriesId: string | null, fields: SaveTestSeriesFields): Promise<string> {
   const seriesRef = seriesId ? doc(db, 'testSeries', seriesId) : doc(collection(db, 'testSeries'))
   await setDoc(seriesRef, {
     title: fields.title.trim(),
     description: fields.description.trim(),
-    courseId: fields.courseId,
     examIds: fields.examIds,
     status: fields.status,
     pricingType: fields.pricingType,
@@ -68,11 +87,7 @@ function demoQuestions(examLabel: string): ExamQuestion[] {
 
 export { DEMO_SERIES_COUNT, DEMO_EXAMS_PER_SERIES, DEMO_QUESTIONS_PER_EXAM }
 
-export async function seedDemoTestSeries(existingSeries: TestSeries[], courses: Course[]): Promise<number> {
-  // A course to attach the demo series to — reuse the first existing one, or create one.
-  let courseId = courses[0]?.id
-  if (!courseId) courseId = await createCourse('Demo Course')
-
+export async function seedDemoTestSeries(existingSeries: TestSeries[]): Promise<number> {
   const existingTitles = new Set(existingSeries.map((item) => item.title))
   let batch = writeBatch(db)
   let opCount = 0
@@ -113,7 +128,7 @@ export async function seedDemoTestSeries(existingSeries: TestSeries[], courses: 
 
     if (opCount >= 400) await flush()
     const seriesRef = doc(collection(db, 'testSeries'))
-    batch.set(seriesRef, { title: seriesTitle, description: `Auto-generated demo series with ${DEMO_EXAMS_PER_SERIES} exams.`, courseId, examIds, status: 'published', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
+    batch.set(seriesRef, { title: seriesTitle, description: `Auto-generated demo series with ${DEMO_EXAMS_PER_SERIES} exams.`, examIds, status: 'published', createdAt: serverTimestamp(), updatedAt: serverTimestamp() })
     opCount++
     seriesCreated++
   }
