@@ -38,8 +38,12 @@ input[type="checkbox"],input[type="radio"]{width:16px;height:16px;accent-color:#
 .error{color:#b42318;background:#fff0ee;padding:10px;border-radius:8px}
 .notice{color:#1767b1;background:#edf6ff;padding:10px;border-radius:8px}
 .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.grid-4{grid-template-columns:repeat(4,1fr)}
 .stat{display:grid;gap:12px}
 .stat strong{font-size:34px;color:#1767b1}
+.app-overview-facts{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin:18px 0 0}
+.app-overview-facts dt{font-size:12px;font-weight:700;color:#6b7d8c;text-transform:uppercase;letter-spacing:.04em}
+.app-overview-facts dd{margin:2px 0 0;font-weight:700;color:#102b43}
 .stack{display:grid;gap:18px}
 .row{display:flex;gap:12px;align-items:center}
 .row>*{flex:1}
@@ -89,4 +93,6 @@ button:disabled{box-shadow:none!important;transform:none!important}
   .full-width{grid-column:auto}
   .grid12{grid-template-columns:1fr}
   .grid12>*{grid-column:1/-1!important}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  .app-overview-facts{grid-template-columns:1fr}
 }

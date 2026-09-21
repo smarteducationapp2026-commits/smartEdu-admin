@@ -5,6 +5,7 @@ import { signOutAdmin } from '../../services/auth'
 import type { AdminUser } from '../../core/types'
 import { Avatar } from '../shared/Avatar'
 import { Overview } from '../overview'
+import { Analytics } from '../analytics'
 import { Subjects } from '../subjects'
 import { Users } from '../users'
 import { Tests } from '../tests'
@@ -18,7 +19,7 @@ export function Dashboard({
   role: 'admin' | 'superAdmin'
 }) {
   const [section, setSection] = useState<
-    'overview' | 'subjects' | 'users' | 'tests' | 'profile'
+    'overview' | 'analytics' | 'subjects' | 'users' | 'tests' | 'profile'
   >('overview')
   const [profileOpen, setProfileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -32,6 +33,7 @@ export function Dashboard({
           {(
             [
               ['overview', '⌂', 'Overview'],
+              ['analytics', '▤', 'Analytics'] as const,
               ...(role === 'superAdmin' ? [['users', '♙', 'Manage Users'] as const] : []),
               ['subjects', '▦', 'Subjects'] as const,
               ['tests', '✓', 'Test Series'],
@@ -95,6 +97,7 @@ export function Dashboard({
           </div>
         </div>
         {section === 'overview' && <Overview />}
+        {section === 'analytics' && <Analytics />}
         {section === 'subjects' && <Subjects role={role} />}
         {section === 'users' && role === 'superAdmin' && <Users />}
         {section === 'tests' && <Tests role={role} />}
